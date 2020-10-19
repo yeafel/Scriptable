@@ -1083,8 +1083,6 @@ async function future(column) {
   let futureWeatherStack = column.addStack()
   futureWeatherStack.layoutVertically()
   futureWeatherStack.setPadding(0, 0, 0, 0)
-  futureWeatherStack.url = "https://weather.com/weather/tenday/l/" + locationData.latitude + "," + locationData.longitude
-
   // Determine if we should show the next hour.
   // 判断是否应该显示下一个小时的天气
   const showNextHour = (currentDate.getHours() < weatherSettings.tomorrowShownAtHour)
