@@ -1,3 +1,6 @@
+// Variables used by Scriptable.
+// These must be at the very top of the file. Do not edit.
+// icon-color: light-brown; icon-glyph: magic;
 /*
  * SETUP/设置
  * Use this section to set up the widget.
@@ -140,7 +143,7 @@ const eventSettings = {
 
   // Show tomorrow's events.
   // 是否显示明天/后的事件，不显示则设置为false
-  ,showTomorrow: true
+  ,showTomorrow: false
 
   // Can be blank "" or set to "duration" or "time" to display how long an event is.
   // “”内可以为空白，也可以设置为“ duration”或“ time”以显示事件的持续时间（则设置了之后会显示事件的时间XX小时，XX分钟）
@@ -156,7 +159,7 @@ const eventSettings = {
   
   // When no events remain, show a hard-coded "message", a "greeting", or "none".
   // 如果没有事件，显示硬编码的“消息”，“问候”或“无”。
-  ,noEventBehavior: "message"
+  ,noEventBehavior: "greeting"
 }
 
 // SUNRISE/日出日出
@@ -241,7 +244,7 @@ const textFormat = {
   largeDate1:  { size: 16, color: "", font: "medium" },
   largeDate2:  { size: 16, color: "", font: "medium" },
   
-  greeting:    { size: 20, color: "", font: "semibold" },
+  greeting:    { size: 16, color: "", font: "semibold" },
   eventLabel:  { size: 14, color: "", font: "semibold" },
   eventTitle:  { size: 14, color: "", font: "semibold" },
   eventTime:   { size: 11, color: "ffffffcc", font: "" },
@@ -770,11 +773,12 @@ async function setupWeather() {
   weatherData.tomorrowHigh = tomorrowHigh
   weatherData.tomorrowLow = tomorrowLow
   weatherData.tomorrowCondition = skyconImgID(dailyData.skycon_08h_20h[1].value)
+
 }
 function skyconImgID(skycon){
 
   let id = 800
-  if (skycon == "CLEAR_DAY") {return id = 800}
+  if (skycon == "CLEAR_DAY"||skycon == "CLEAR_NIGHT") {return id = 800}
   if (skycon == "PARTLY_CLOUDY_DAY"||skycon=="PARTLY_CLOUDY_NIGHT") {return id = 802}
   if (skycon == "FOG") {return id = 701}
   if (skycon == "LIGHT_RAIN") {return id = 300}
@@ -827,7 +831,7 @@ async function date(column) {
   // 如果是有硬编码文本或有事件显示，则显示为小日期样式
   if (dateSettings.staticDateSize == "small" || (dateSettings.dynamicDateSize && eventData.eventsAreVisible)) {
     let dateStack = align(column)
-    dateStack.setPadding(padding, padding, padding, padding)
+    dateStack.setPadding(padding, padding-5, padding, padding)
 
     df.dateFormat = dateSettings.smallDateFormat
     let dateText = provideText(df.string(currentDate), dateStack, textFormat.smallDate)
@@ -858,7 +862,7 @@ async function greeting(column) {
     if (hour    < 5)  { return localizedText.nightGreeting }
     if (hour    < 11) { return localizedText.morningGreeting }
     if (hour    > 11 && hour-12 < 1)  { return localizedText.noonGreeting }
-    if (hour-12 < 6)  { return localizedText.afternoonGreeting }
+    if (hour-12 < 7)  { return localizedText.afternoonGreeting }
     if (hour-12 < 10) { return localizedText.eveningGreeting }
     return localizedText.nightGreeting
   }
@@ -867,7 +871,7 @@ async function greeting(column) {
   // 设置问候语Stack和边距
   let greetingStack = align(column)
   let greeting = provideText(makeGreeting(), greetingStack, textFormat.greeting)
-  greetingStack.setPadding(padding, padding, padding, padding) //问候语的间距设置，调整这项以更改边距，依次是逆时针顺序上、左、下、右
+  greetingStack.setPadding(padding, padding-4, padding, padding) //问候语的间距设置，调整这项以更改边距，依次是逆时针顺序上、左、下、右
 }
 
 // Display events on the widget.
@@ -1011,7 +1015,6 @@ async function current(column) {
   let currentWeatherStack = column.addStack()
   currentWeatherStack.layoutVertically()
   currentWeatherStack.setPadding(0, 0, 0, 0) //当前天气的间距设置，调整这项以更改边距，依次是逆时针顺序上、左、下、右
-  currentWeatherStack.url = "https://weather.com/weather/today/l/" + locationData.latitude + "," + locationData.longitude
   
   // If we're showing the location, add it.
   // 如果要显示位置，添加这个
@@ -1083,6 +1086,8 @@ async function future(column) {
   let futureWeatherStack = column.addStack()
   futureWeatherStack.layoutVertically()
   futureWeatherStack.setPadding(0, 0, 0, 0)
+  futureWeatherStack.url = "https://weather.com/weather/tenday/l/" + locationData.latitude + "," + locationData.longitude
+
   // Determine if we should show the next hour.
   // 判断是否应该显示下一个小时的天气
   const showNextHour = (currentDate.getHours() < weatherSettings.tomorrowShownAtHour)
