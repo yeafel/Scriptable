@@ -860,11 +860,11 @@ async function greeting(column) {
   // 此函数可以调整一天中不同时间段的问候语显示
   function makeGreeting() {
     const hour = currentDate.getHours()
-    if (hour    < 5)  { return localizedText.nightGreeting }
-    if (hour    < 11) { return localizedText.morningGreeting }
-    if (hour    > 11 && hour-12 < 1)  { return localizedText.noonGreeting }
-    if (hour-12 < 7)  { return localizedText.afternoonGreeting }
-    if (hour-12 < 10) { return localizedText.eveningGreeting }
+    if (hour < 4)  { return localizedText.nightGreeting }
+    if (hour < 12) { return localizedText.morningGreeting }
+    if (hour < 14)  { return localizedText.noonGreeting }
+    if (hour < 19)  { return localizedText.afternoonGreeting }
+    if (hour < 23) { return localizedText.eveningGreeting }
     return localizedText.nightGreeting
   }
   
