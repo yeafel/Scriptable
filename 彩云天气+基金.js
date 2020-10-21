@@ -89,18 +89,19 @@ const items = [
   
   row,
   
-    column,
+    column(235),
+    left,
     date,
     events,
     text("-------------------------------------"),
     text(await setupExpectString()),
     
  
-    column(80),
+    column,
     right,
     current,
     future,
-    text(getTextData()),
+    text(AQI()),
 ]
 
 /*
@@ -210,10 +211,10 @@ const localizedText = {
   // The text shown if you add a greeting item to the layout.
   // 如果在布局中添加问候语，则显示此处的文本。
   nightGreeting: "该睡觉了🦥"
-  ,morningGreeting: "早上好呀👨🏻‍💻"
-  ,noonGreeting: "中午好呀🦦"
-  ,afternoonGreeting: "下午好呀👨🏻‍💻"
-  ,eveningGreeting: "晚上好呀🦧"
+  ,morningGreeting: "早上好 👨🏻‍💻"
+  ,noonGreeting: "中午好呀🍜"
+  ,afternoonGreeting: "下午好 👨🏻‍💻"
+  ,eveningGreeting: "晚上好 🌆"
   
   // The text shown if you add a future weather item to the layout, or tomorrow's events.
   // 如果将未来的天气项目添加到布局或明天的事件中，则显示此处的文本。
@@ -246,8 +247,8 @@ const textFormat = {
   
   greeting:    { size: 16, color: "", font: "semibold" },
   eventLabel:  { size: 14, color: "", font: "semibold" },
-  eventTitle:  { size: 14, color: "", font: "semibold" },
-  eventTime:   { size: 11, color: "ffffffcc", font: "" },
+  eventTitle:  { size: 12, color: "", font: "semibold" },
+  eventTime:   { size: 11, color: "", font: "" },
   noEvents:    { size: 11, color: "", font: "semibold" },
   
   largeTemp:   { size: 16, color: "", font: "semibold" },
@@ -747,6 +748,7 @@ async function setupWeather() {
     const weatherReq = "https://api.caiyunapp.com/v2.5/S45Fnpxcwyq0QT4b/"+locationData.longitude+","+locationData.latitude+"/weather.json?lang=zh_CN"
     weatherDataRaw = await new Request(weatherReq).loadJSON()
     files.writeString(cachePath, JSON.stringify(weatherDataRaw))
+
   }
   // 解析彩云天气数据
     let resultData = weatherDataRaw.result
@@ -779,7 +781,7 @@ function skyconImgID(skycon){
 
   let id = 800
   if (skycon == "CLEAR_DAY"||skycon == "CLEAR_NIGHT") {return id = 800}
-  if (skycon == "PARTLY_CLOUDY_DAY"||skycon=="PARTLY_CLOUDY_NIGHT") {return id = 802}
+  if (skycon == "PARTLY_CLOUDY_DAY"||skycon=="PARTLY_CLOUDY_NIGHT"||skycon == "CLOUDY") {return id = 802}
   if (skycon == "FOG") {return id = 701}
   if (skycon == "LIGHT_RAIN") {return id = 300}
   if (skycon == "WIND") {return id = 781}
@@ -789,22 +791,21 @@ function skyconImgID(skycon){
   if (skycon == "MODERATE_RAIN"||skycon=="HEAVY_RAIN") {return id = 500}
 return id
 }
-function getTextData(){
+function AQI(){
 
   const files = FileManager.local()
   const cachePath = files.joinPath(files.documentsDirectory(), "weather-cal-cache")
   const cacheExists = files.fileExists(cachePath)
   const cacheDate = cacheExists ? files.modificationDate(cachePath) : 0
-  var weatherDataRaw
-
+  var aqi = ""
   // If cache exists and it's been less than 60 seconds since last request, use cached data.
   if (cacheExists) {
     const cache = files.readString(cachePath)
-    weatherDataRaw = JSON.parse(cache)
+    let weatherDataRaw = JSON.parse(cache)
     let realtimeData = weatherDataRaw.result.realtime
-    let AQI = realtimeData.air_quality.aqi.usa//PM2.5
-    const aqiDesc = realtimeData.air_quality.description.usa
-    aqi = String("空气指数:"+AQI)
+    const aqiNum = realtimeData.air_quality.aqi.usa//PM2.5
+    // const aqiDesc = realtimeData.air_quality.description.usa
+    aqi = String("空气指数:"+aqiNum)
   }
     return aqi
 }
@@ -831,7 +832,7 @@ async function date(column) {
   // 如果是有硬编码文本或有事件显示，则显示为小日期样式
   if (dateSettings.staticDateSize == "small" || (dateSettings.dynamicDateSize && eventData.eventsAreVisible)) {
     let dateStack = align(column)
-    dateStack.setPadding(padding, padding-5, padding, padding)
+    dateStack.setPadding(padding-5, padding-5, padding/2, padding)
 
     df.dateFormat = dateSettings.smallDateFormat
     let dateText = provideText(df.string(currentDate), dateStack, textFormat.smallDate)
@@ -998,7 +999,7 @@ async function events(column) {
 
     const timeStack = align(currentStack)
     const time = provideText(timeText, timeStack, textFormat.eventTime)
-    timeStack.setPadding(0, padding, padding, padding)
+    timeStack.setPadding(1, padding, padding/2, padding)
   }
 }
 
@@ -1086,7 +1087,7 @@ async function future(column) {
   let futureWeatherStack = column.addStack()
   futureWeatherStack.layoutVertically()
   futureWeatherStack.setPadding(0, 0, 0, 0)
-  futureWeatherStack.url = "https://weather.com/weather/tenday/l/" + locationData.latitude + "," + locationData.longitude
+//   futureWeatherStack.url = "https://weather.com/weather/tenday/l/" + locationData.latitude + "," + locationData.longitude
 
   // Determine if we should show the next hour.
   // 判断是否应该显示下一个小时的天气
