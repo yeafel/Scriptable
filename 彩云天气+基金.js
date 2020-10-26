@@ -15,8 +15,11 @@ async function setupExpectString(){
     var expectStr = ""
     for (let index in expectData) {
       // 当前基金单位净值估算日涨幅,单位为百分比
-      let expectWorth = ('  ' + expectData[index].expectGrowth+"%")
+      let expectWorth = (' 🚥' + expectData[index].expectGrowth+"%")
       let name = expectData[index].name
+      name = name.replace("增强", "")
+      name = name.replace("分级", " ")
+      name = name.replace("联接C", " ")
       expectStr=(expectStr+name+expectWorth+"\n")
     }
     return expectStr
@@ -95,13 +98,13 @@ const items = [
     events,
     text("-------------------------------------"),
     text(await setupExpectString()),
-    
+    text("weatherDec"),
  
     column,
     right,
     current,
     future,
-    text(AQI()),
+    text("aqi"),
 ]
 
 /*
@@ -144,7 +147,7 @@ const eventSettings = {
 
   // Show tomorrow's events.
   // 是否显示明天/后的事件，不显示则设置为false
-  ,showTomorrow: false
+  ,showTomorrow: true
 
   // Can be blank "" or set to "duration" or "time" to display how long an event is.
   // “”内可以为空白，也可以设置为“ duration”或“ time”以显示事件的持续时间（则设置了之后会显示事件的时间XX小时，XX分钟）
@@ -222,8 +225,8 @@ const localizedText = {
   ,tomorrowLabel: "Tomorrow"
 
   // Shown when noEventBehavior is set to "message".
-  // 当没有事件时则显示此处的“ message”
-  ,noEventMessage:"☕️☕️☕️"
+  // 当没有事件时则显示此处的“message”
+  ,noEventMessage:currentDescription()
   
   // The text shown after the hours and minutes of an event duration.
   // 事件持续时间显示的文本（小时/分钟）。
@@ -245,18 +248,18 @@ const textFormat = {
   largeDate1:  { size: 16, color: "", font: "medium" },
   largeDate2:  { size: 16, color: "", font: "medium" },
   
-  greeting:    { size: 16, color: "", font: "semibold" },
+  greeting:    { size: 14, color: "", font: "semibold" },
   eventLabel:  { size: 14, color: "", font: "semibold" },
-  eventTitle:  { size: 12, color: "", font: "semibold" },
-  eventTime:   { size: 11, color: "", font: "" },
+  eventTitle:  { size: 11, color: "", font: "semibold" },
+  eventTime:   { size: 10, color: "", font: "" },
   noEvents:    { size: 11, color: "", font: "semibold" },
   
   largeTemp:   { size: 16, color: "", font: "semibold" },
   smallTemp:   { size: 10, color: "", font: "" },
   tinyTemp:    { size: 10, color: "", font: "" },
   
-  customText:  { size: 12, color: "", font: "" },
-  
+  customText:  { size: 11, color: "", font: "" },
+  aqiText:     { size: 10, color: "", font: "semibold" },
   battery:     { size: 14, color: "", font: "medium" },
   sunrise:     { size: 12, color: "", font: "medium" },
 }
@@ -305,6 +308,7 @@ var currentAlignment = alignLeft
 
 // Set up our items.
 // 设置items
+
 for (item of items) { await item(currentColumn) }
 /*
  * BACKGROUND DISPLAY/背景显示
@@ -348,6 +352,7 @@ if (imageBackground) {
   gradient.locations = gradientSettings.position()
   
   widget.backgroundGradient = gradient
+
 }
 
 // Finish the widget and show a preview.
@@ -738,7 +743,7 @@ async function setupWeather() {
 
   // If cache exists and it's been less than 60 seconds since last request, use cached data.
   // 如果存在缓存，并且距离上次请求少于60秒，使用缓存的数据
-  if (cacheExists && (currentDate.getTime() - cacheDate.getTime()) < 60000) {
+  if (cacheExists && (currentDate.getTime() - cacheDate.getTime()) < 600000) {
     const cache = files.readString(cachePath)
     weatherDataRaw = JSON.parse(cache)
 
@@ -760,13 +765,12 @@ async function setupWeather() {
     const todayLow = dailyData.temperature[0].min//今日最低温度
     const tomorrowHigh = dailyData.temperature[1].max//明日最高
     const tomorrowLow = dailyData.temperature[1].min//明日最低
-    let currentDescription = resultData.forecast_keypoint//下雨情况
+    
   // Store the weather values.
   // 储存天气数据值
   weatherData = {}
   weatherData.currentTemp = temperature
   weatherData.currentCondition = skyconImgID(realtimeData.skycon)//天气图标
-  weatherData.currentDescription = currentDescription //中文天气描述
   weatherData.todayHigh = todayHigh
   weatherData.todayLow = todayLow
   weatherData.nextHourTemp = resultData.hourly.temperature[1].value
@@ -791,23 +795,41 @@ function skyconImgID(skycon){
   if (skycon == "MODERATE_RAIN"||skycon=="HEAVY_RAIN") {return id = 500}
 return id
 }
+function currentDescription(){
+
+  const files = FileManager.local()
+  const cachePath = files.joinPath(files.documentsDirectory(), "weather-cal-cache")
+  const cacheExists = files.fileExists(cachePath)
+  const cacheDate = cacheExists ? files.modificationDate(cachePath) : 0
+  let text = "暂无数据"
+  // If cache exists and it's been less than 60 seconds since last request, use cached data.
+  if (cacheExists) {
+    const cache = files.readString(cachePath)
+    const weatherDataRaw = JSON.parse(cache)
+    if(weatherDataRaw.cod == 401){return text}
+    const data = weatherDataRaw.result
+    text = data.forecast_keypoint//未来下雨情况
+    text = text.split("。")[0]
+  }
+    return text
+}
 function AQI(){
 
   const files = FileManager.local()
   const cachePath = files.joinPath(files.documentsDirectory(), "weather-cal-cache")
   const cacheExists = files.fileExists(cachePath)
   const cacheDate = cacheExists ? files.modificationDate(cachePath) : 0
-  var aqi = ""
+  var text = "暂无数据"
   // If cache exists and it's been less than 60 seconds since last request, use cached data.
   if (cacheExists) {
     const cache = files.readString(cachePath)
     let weatherDataRaw = JSON.parse(cache)
+    if(weatherDataRaw.cod == 401){return text}
     let realtimeData = weatherDataRaw.result.realtime
     const aqiNum = realtimeData.air_quality.aqi.usa//PM2.5
-    // const aqiDesc = realtimeData.air_quality.description.usa
-    aqi = String("空气指数:"+aqiNum)
+    text = String("空气指数:"+aqiNum)
   }
-    return aqi
+    return text
 }
 /*
  * WIDGET ITEMS/小部件项目
@@ -860,8 +882,9 @@ async function greeting(column) {
   // 此函数可以调整一天中不同时间段的问候语显示
   function makeGreeting() {
     const hour = currentDate.getHours()
-    if (hour < 4)  { return localizedText.nightGreeting }
-    if (hour < 12) { return localizedText.morningGreeting }
+    log(hour)
+    if (hour < 5)  { return localizedText.nightGreeting }
+    if (hour < 11) { return localizedText.morningGreeting }
     if (hour < 14)  { return localizedText.noonGreeting }
     if (hour < 19)  { return localizedText.afternoonGreeting }
     if (hour < 23) { return localizedText.eveningGreeting }
@@ -932,18 +955,22 @@ async function events(column) {
     
     // If it's the tomorrow label, change to the tomorrow stack.
     // 如果是明天的lable，则改用明天的Stack
+    
     if (event.isLabel) {
+      /*
       let tomorrowStack = column.addStack()
       tomorrowStack.layoutVertically()
       const tomorrowSeconds = Math.floor(currentDate.getTime() / 1000) - 978220800
       tomorrowStack.url = 'calshow:' + tomorrowSeconds
       currentStack = tomorrowStack
       
-      // Mimic the formatting of an event title, mostly.
-      // 事件标题的格式
+    // Mimic the formatting of an event title, mostly.
+    // 事件标题的格式
+      event.title = ""
       const eventLabelStack = align(currentStack)
       const eventLabel = provideText(event.title, eventLabelStack, textFormat.eventLabel)
       eventLabelStack.setPadding(padding, padding, padding, padding)
+      */
       continue
     }
     
@@ -960,7 +987,7 @@ async function events(column) {
     }
 
     const title = provideText(event.title.trim(), titleStack, textFormat.eventTitle)
-    titleStack.setPadding(padding, padding, event.isAllDay ? padding : padding/5, padding)
+    titleStack.setPadding(padding-4, padding, event.isAllDay ? padding : padding/5, padding)
     
     // If we're showing a color on the right, show it.
     if (showCalendarColor.length && showCalendarColor.includes("right")) {
@@ -980,7 +1007,7 @@ async function events(column) {
     // Format the time information.
     // 格式化时间信息
     let timeText = formatTime(event.startDate)
-    
+    timeText = "明日"+timeText
     // If we show the length as time, add an en dash and the time.
     // 如果显示为时间，添加一个破折号“-”
     if (eventSettings.showEventLength == "time") { 
@@ -994,12 +1021,12 @@ async function events(column) {
       const hourText = hours>0 ? hours + localizedText.durationHour : ""
       const minuteText = minutes>0 ? minutes + localizedText.durationMinute : ""
       const showSpace = hourText.length && minuteText.length
-      timeText += " \u2022 " + hourText + (showSpace ? " " : "") + minuteText
+      timeText += "·" + hourText + (showSpace ? " " : "") + minuteText
     }
 
     const timeStack = align(currentStack)
     const time = provideText(timeText, timeStack, textFormat.eventTime)
-    timeStack.setPadding(1, padding, padding/2, padding)
+    timeStack.setPadding(0, 10, 0, 0)
   }
 }
 
@@ -1157,8 +1184,16 @@ function text(input = null) {
     // Otherwise, add the text.
     // 否则添加该文本
     const textStack = align(column)
-    textStack.setPadding(0,0,0,0) //自定义文本的间距设置，调整这项以更改边距，依次是逆时针顺序上、左、下、右
-    const textDisplay = provideText(input, textStack, textFormat.customText)
+    textStack.setPadding(0,0,0,0)
+    if(input == "aqi"){
+      const textDisplay = provideText(AQI(), textStack, textFormat.aqiText)
+    }else if(input == "weatherDec"){
+      textStack.setPadding(5,0,0,0)
+      const textDisplay = provideText(currentDescription(), textStack, textFormat.aqiText)
+
+    }else{
+      const textDisplay = provideText(input, textStack, textFormat.customText)
+    }
   }
   return displayText
 }
@@ -1419,7 +1454,6 @@ function provideText(string, container, format) {
   const textFont = format.font || textFormat.defaultText.font
   const textSize = format.size || textFormat.defaultText.size
   const textColor = format.color || textFormat.defaultText.color
-  
   textItem.font = provideFont(textFont, textSize)
   textItem.textColor = new Color(textColor)
   return textItem
