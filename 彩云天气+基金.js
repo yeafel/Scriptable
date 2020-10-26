@@ -6,34 +6,10 @@
  * Use this section to set up the widget.
  * 使用此部分来设置小部件
  * ======================================
- */
-//自定义项目
+ */10.26-17.58
 
-// 基金数据文本处理
-async function setupExpectString(){
-    const expectData = await dataGet()
-    var expectStr = ""
-    for (let index in expectData) {
-      // 当前基金单位净值估算日涨幅,单位为百分比
-      let expectWorth = (' 🚥 ' + expectData[index].expectGrowth+"%")
-      let name = expectData[index].name
-      name = name.replace("增强", "")
-      name = name.replace("分级", " ")
-      name = name.replace("联接C", " ")
-      expectStr=(expectStr+name+expectWorth+"\n")
-    }
-    return expectStr
-  }
-// 获取基金数据
-async function dataGet() {
-    //填写你的基金代码
-    let expectID = "005176,161725,001556,005693"
-    const requestUrl = "https://api.doctorxiong.club/v1/fund?code="+expectID
-    const request = new Request(requestUrl)
-    const data = await request.loadJSON()
-    return data.data
-  }
-
+//设置基金代码
+const expectID = "005176,161725,001556,005693"
 // Set the locale code. Leave blank "" to match the device's locale. You can change the hard-coded text strings in the TEXT section below.
 // 设置语言环境代码。“”内保留空白以匹配设备的语言环境。您可以在下面的“文本”部分中更改硬编码的文本字符串。
 let locale = "zh_cn"
@@ -57,36 +33,6 @@ const forceImageUpdate = false
 // Set the padding around each item. Default is 10.
 // 设置默认的边距（更多边距设置参考xxxStack.setpadding）
 const padding = 5
-
-/*
- * LAYOUT/布局
- * Decide what items to show on the widget.
- * 此设置决定要在小部件上显示的项目。
- * ========================================
- */
-// You can add items to the column: 
-// 把你要显示在小部件上的项目添加到items:
-
-// You always need to start with "row," and "column," items, but you can now add as many as you want.
-// 使用行和列来布局，使你可以更加自由地增加/删减要在小部件上显示的项目
-
-// You can also add a left, center, or right to the list. Everything after it will be aligned that way.
-// 您还可以在column下添加left（居左对齐），center（居中对齐）或right（居右对齐）。之后的该列下的所有内容都将以这种方式对齐。
-
-// You can add a flexible vertical space with "space," or a fixed-size space like this: "space(50)"
-// 你可以添加一个“space”增加一个固定大小的空间，并且可以定义它的大小，比如： "space(50)"
-
-// Align items to the top or bottom of columns by adding "space," before or after all items in the column.
-// 通过在列中所有项目的前面或后面添加“space“，使项目与列的顶部或底部对齐。
-
-// date, greeting, events, current, future, battery, text("Your text here")
-// 日期，问候语，事件，当前天气，未来天气，电池，文本（“此处输入文字”）（默认只有这些项目，可自定义添加）
-
-// To define the width of the column, please add (X) value after "column", for example: column(90), then define the width of the column as 90, if not added, the width will be automatic
-// 要定义列的宽度，请在“column”后添加（X）数值，比如：column（90），则定义该列的宽度为90，不添加则自动宽度
-
-// Make sure to always put a comma after each item.
-// 注意格式，确保在每个项目后面加上逗号！！！
 
 const items = [
   
@@ -165,16 +111,6 @@ const eventSettings = {
   // 如果没有事件，显示硬编码的“消息”，“问候”或“无”。
   ,noEventBehavior: "greeting"
 }
-
-// SUNRISE/日出日出
-// ==============
-const sunriseSettings = {
-  
-  // How many minutes before/after sunrise or sunset to show this element. 0 for always.
-  // 日出或日落前后多少分钟才​​能显示此项。如果想始终显示则设置为 0
-  showWithin: 0
-}
-
 // WEATHER/天气
 // ===========
 const weatherSettings = {
@@ -261,7 +197,75 @@ const textFormat = {
   customText:  { size: 11, color: "", font: "" },
   aqiText:     { size: 10, color: "", font: "semibold" },
   battery:     { size: 14, color: "", font: "medium" },
-  sunrise:     { size: 12, color: "", font: "medium" },
+}
+
+//自定义部分功能
+// 基金数据文本处理
+async function setupExpectString(){
+  const expectData = await dataGet()
+  var expectStr = ""
+  for (let index in expectData) {
+    // 当前基金单位净值估算日涨幅,单位为百分比
+    let expectWorth = (' 🚥 ' + expectData[index].expectGrowth+"%")
+    let name = expectData[index].name
+    name = name.replace("增强", "")
+    name = name.replace("分级", " ")
+    name = name.replace("联接C", " ")
+    expectStr=(expectStr+name+expectWorth+"\n")
+  }
+  return expectStr
+}
+// 获取基金数据
+async function dataGet() {
+  //填写你的基金代码
+  const requestUrl = "https://api.doctorxiong.club/v1/fund?code="+expectID
+  const request = new Request(requestUrl)
+  const data = await request.loadJSON()
+  return data.data
+}
+//未来天气情况描述
+function currentDescription(){
+
+  const files = FileManager.local()
+  const cachePath = files.joinPath(files.documentsDirectory(), "weather-cal-cache")
+  const cacheExists = files.fileExists(cachePath)
+  const cacheDate = cacheExists ? files.modificationDate(cachePath) : 0
+  let text = "暂无数据"
+  // If cache exists and it's been less than 60 seconds since last request, use cached data.
+  if (cacheExists) {
+    const cache = files.readString(cachePath)
+    const weatherDataRaw = JSON.parse(cache)
+    if(weatherDataRaw.cod == 401){return text}
+    const data = weatherDataRaw.result
+    text = data.forecast_keypoint//未来下雨情况
+    text = text.split("。")[0]
+  }
+    return text
+}
+//AQI
+function AQI(){
+
+  const files = FileManager.local()
+  const cachePath = files.joinPath(files.documentsDirectory(), "weather-cal-cache")
+  const cacheExists = files.fileExists(cachePath)
+  const cacheDate = cacheExists ? files.modificationDate(cachePath) : 0
+  var text = "暂无数据"
+  // If cache exists and it's been less than 60 seconds since last request, use cached data.
+  if (cacheExists) {
+    const cache = files.readString(cachePath)
+    let weatherDataRaw = JSON.parse(cache)
+    if(weatherDataRaw.cod == 401){return text}
+    let realtimeData = weatherDataRaw.result.realtime
+    const aqiNum = realtimeData.air_quality.aqi.usa//PM2.5
+    text = String("空气指数:"+aqiNum)
+  }
+    return text
+}
+// Determines if the provided date is at night.
+function isNight(dateInput) {
+let date = new Date()
+const hour = date.getHours()
+return (hour < 24) || (hour > 19)
 }
 
 /*
@@ -277,7 +281,7 @@ if (locale == "" || locale == null) { locale = Device.locale() }
 
 // Declare the data variables.
 // 声明数据变量
-var eventData, locationData, sunData, weatherData
+var eventData, locationData, weatherData
 
 // Create global constants.
 // 创建全局常量
@@ -344,17 +348,7 @@ if (imageBackground) {
     
 // If it's not an image background, show the gradient.
 // 如果不是图片背景，显示渐变
-} else {
-  let gradient = new LinearGradient()
-  let gradientSettings = await setupGradient()
-  
-  gradient.colors = gradientSettings.color()
-  gradient.locations = gradientSettings.position()
-  
-  widget.backgroundGradient = gradient
-
-}
-
+} 
 // Finish the widget and show a preview.
 // 完成小部件并显示预览
 Script.setWidget(widget)
@@ -574,77 +568,6 @@ async function setupEvents() {
   eventData.futureEvents = futureEvents
   eventData.eventsAreVisible = (futureEvents.length > 0) && (eventSettings.numberOfEvents > 0)
 }
-
-// Set up the gradient for the widget background.
-// 设置小部件渐变背景
-async function setupGradient() {
-  
-  // Requirements: sunrise
-  if (!sunData) { await setupSunrise() }
-
-  let gradient = {
-    dawn: {
-      color() { return [new Color("142C52"), new Color("1B416F"), new Color("62668B")] },
-      position() { return [0, 0.5, 1] },
-    },
-
-    sunrise: {
-      color() { return [new Color("274875"), new Color("766f8d"), new Color("f0b35e")] },
-      position() { return [0, 0.8, 1.5] },
-    },
-
-    midday: {
-      color() { return [new Color("3a8cc1"), new Color("90c0df")] },
-      position() { return [0, 1] },
-    },
-
-    noon: {
-      color() { return [new Color("b2d0e1"), new Color("80B5DB"), new Color("3a8cc1")] },
-      position() { return [-0.2, 0.2, 1.5] },
-    },
-
-    sunset: {
-      color() { return [new Color("32327A"), new Color("662E55"), new Color("7C2F43")] },
-      position() { return [0.1, 0.9, 1.2] },
-    },
-
-    twilight: {
-      color() { return [new Color("021033"), new Color("16296b"), new Color("414791")] },
-      position() { return [0, 0.5, 1] },
-    },
-
-    night: {
-      color() { return [new Color("16296b"), new Color("021033"), new Color("021033"), new Color("113245")] },
-      position() { return [-0.5, 0.2, 0.5, 1] },
-    },
-  }
-
-  const sunrise = sunData.sunrise
-  const sunset = sunData.sunset
-
-  // Use sunrise or sunset if we're within 30min of it.
-  // 如果距离30分钟以内，使用日出或日落
-  if (closeTo(sunrise)<=15) { return gradient.sunrise }
-  if (closeTo(sunset)<=15) { return gradient.sunset }
-
-  // In the 30min before/after, use dawn/twilight.
-  // 如果距离30分钟前/后，使用黎明/暮光
-  if (closeTo(sunrise)<=45 && utcTime < sunrise) { return gradient.dawn }
-  if (closeTo(sunset)<=45 && utcTime > sunset) { return gradient.twilight }
-
-  // Otherwise, if it's night, return night.
-  // 否则，如果是夜晚，则使用夜晚
-  if (isNight(currentDate)) { return gradient.night }
-
-  // If it's around noon, the sun is high in the sky.
-  // 如果在正午时分，太阳在天空中很高
-  if (currentDate.getHours() == 12) { return gradient.noon }
-
-  // Otherwise, return the "typical" theme.
-  // 否则，返回“typical”主题。
-  return gradient.midday
-}
-
 // Set up the locationData object.
 // 设置位置数据对象
 async function setupLocation() {
@@ -682,51 +605,6 @@ async function setupLocation() {
     locationData.locality = locationStr[2]
   }
 }
-
-// Set up the sunData object.
-// 设置日落/日出数据对象
-async function setupSunrise() {
-
-  // Requirements: location
-  if (!locationData) { await setupLocation() }
-
-  // Set up the sunrise/sunset cache.
-  // 设置日出/日落缓存
-  const sunCachePath = files.joinPath(files.documentsDirectory(), "weather-cal-sun")
-  const sunCacheExists = files.fileExists(sunCachePath)
-  const sunCacheDate = sunCacheExists ? files.modificationDate(sunCachePath) : 0
-  let sunDataRaw, afterSunset
-
-  // If cache exists and was created today, use cached data.
-  // 如果缓存存在并且是今天创建的，使用缓存的数据
-  if (sunCacheExists && sameDay(currentDate, sunCacheDate)) {
-    const sunCache = files.readString(sunCachePath)
-    sunDataRaw = JSON.parse(sunCache)
-    
-    // Determine if it's after sunset.
-    // 判断是否在日落之后
-    const sunsetDate = new Date(sunDataRaw.results.sunset)
-    afterSunset = currentDate.getTime() - sunsetDate.getTime() > (45 * 60 * 1000)
-  }
-  
-  // If we don't have data yet, or we need to get tomorrow's data, get it from the server.
-  // 如果还没有数据，或者需要获取明天的数据，从服务器获取。
-  if (!sunDataRaw || afterSunset) {
-    let tomorrowDate = new Date()
-    tomorrowDate.setDate(currentDate.getDate() + 1)
-    const dateToUse = afterSunset ? tomorrowDate : currentDate
-    const sunReq = "https://api.sunrise-sunset.org/json?lat=" + locationData.latitude + "&lng=" + locationData.longitude + "&formatted=0&date=" + dateToUse.getFullYear() + "-" + (dateToUse.getMonth()+1) + "-" + dateToUse.getDate()
-    sunDataRaw = await new Request(sunReq).loadJSON()
-    files.writeString(sunCachePath, JSON.stringify(sunDataRaw))
-  }
-
-  // Store the timing values.
-  // 存储计时值
-  sunData = {}
-  sunData.sunrise = new Date(sunDataRaw.results.sunrise).getTime()
-  sunData.sunset = new Date(sunDataRaw.results.sunset).getTime()
-}
-
 // Set up the weatherData object.
 // 设置天气数据对象
 async function setupWeather() {
@@ -770,67 +648,56 @@ async function setupWeather() {
   // 储存天气数据值
   weatherData = {}
   weatherData.currentTemp = temperature
-  weatherData.currentCondition = skyconImgID(realtimeData.skycon)//天气图标
+  weatherData.currentCondition = realtimeData.skycon//天气图标
   weatherData.todayHigh = todayHigh
   weatherData.todayLow = todayLow
   weatherData.nextHourTemp = resultData.hourly.temperature[1].value
-  weatherData.nextHourCondition = skyconImgID(realtimeData.skycon)
+  weatherData.nextHourCondition = realtimeData.skycon
 
   weatherData.tomorrowHigh = tomorrowHigh
   weatherData.tomorrowLow = tomorrowLow
-  weatherData.tomorrowCondition = skyconImgID(dailyData.skycon_08h_20h[1].value)
+  weatherData.tomorrowCondition = dailyData.skycon_08h_20h[1].value
 
 }
-function skyconImgID(skycon){
-
-  let id = 800
-  if (skycon == "CLEAR_DAY"||skycon == "CLEAR_NIGHT") {return id = 800}
-  if (skycon == "PARTLY_CLOUDY_DAY"||skycon=="PARTLY_CLOUDY_NIGHT"||skycon == "CLOUDY") {return id = 802}
-  if (skycon == "FOG") {return id = 701}
-  if (skycon == "LIGHT_RAIN") {return id = 300}
-  if (skycon == "WIND") {return id = 781}
-  if (skycon == "LIGHT_SNOW") {return id = 614}
-  if (skycon == "HEAVY_SNOW"||"MODERATE_SNOW"||skycon== "STORM_SNOW") {return id = 613}
-  if (skycon == "STORM_RAIN") {return id = 200}
-  if (skycon == "MODERATE_RAIN"||skycon=="HEAVY_RAIN") {return id = 500}
-return id
-}
-function currentDescription(){
-
-  const files = FileManager.local()
-  const cachePath = files.joinPath(files.documentsDirectory(), "weather-cal-cache")
-  const cacheExists = files.fileExists(cachePath)
-  const cacheDate = cacheExists ? files.modificationDate(cachePath) : 0
-  let text = "暂无数据"
-  // If cache exists and it's been less than 60 seconds since last request, use cached data.
-  if (cacheExists) {
-    const cache = files.readString(cachePath)
-    const weatherDataRaw = JSON.parse(cache)
-    if(weatherDataRaw.cod == 401){return text}
-    const data = weatherDataRaw.result
-    text = data.forecast_keypoint//未来下雨情况
-    text = text.split("。")[0]
+async function getWeatherIcons(weatherName) {
+  const weatherIcons = {
+    CLEAR_DAY: "https://s1.ax1x.com/2020/10/24/BZSMJe.png", // 晴（白天） CLEAR_DAY
+    CLEAR_NIGHT: "https://s1.ax1x.com/2020/10/24/BZS8sI.png", // 晴（夜间） CLEAR_NIGHT
+    PARTLY_CLOUDY_DAY: "https://s1.ax1x.com/2020/10/24/BZSKiD.png", // 多云（白天）  PARTLY_CLOUDY_DAY
+    PARTLY_CLOUDY_NIGHT: "https://s1.ax1x.com/2020/10/24/BZSKiD.png", // 多云（夜间）  PARTLY_CLOUDY_NIGHT
+    CLOUDY: "https://s1.ax1x.com/2020/10/24/BZSnIO.png", // 阴（白天）  CLOUDY
+    CLOUDY_NIGHT:"https://s1.ax1x.com/2020/10/24/BZS3QA.png", // 阴（夜间）  CLOUDY
+    LIGHT_HAZE: "https://s1.ax1x.com/2020/10/24/BZ8Rrn.png", // 轻度雾霾   LIGHT_HAZE
+    MODERATE_HAZE: "https://s1.ax1x.com/2020/10/24/BZ3whF.png", // 中度雾霾  MODERATE_HAZE
+    HEAVY_HAZE: "https://s1.ax1x.com/2020/10/24/BZ3akT.png", // 重度雾霾   HEAVY_HAZE
+    LIGHT_RAIN: "https://s1.ax1x.com/2020/10/24/BZSdJg.png", // 小雨 LIGHT_RAIN
+    MODERATE_RAIN: "https://s1.ax1x.com/2020/10/24/BZSwWQ.png", // 中雨 MODERATE_RAIN
+    HEAVY_RAIN: "https://s1.ax1x.com/2020/10/24/BZS0zj.png", // 大雨  HEAVY_RAIN
+    STORM_RAIN: "https://s1.ax1x.com/2020/10/24/BZSsLq.png", // 暴雨 STORM_RAIN
+    FOG: "https://s1.ax1x.com/2020/10/24/BZ82Ks.png", // 雾 FOG
+    LIGHT_SNOW: "https://s1.ax1x.com/2020/10/24/BZSbTK.png", // 小雪  LIGHT_SNOW
+    MODERATE_SNOW: "https://s1.ax1x.com/2020/10/24/BZSLFO.png", // 中雪 MODERATE_SNOW
+    HEAVY_SNOW: "https://s1.ax1x.com/2020/10/24/BZSOYD.png", // 大雪  HEAVY_SNOW
+    STORM_SNOW: "https://s1.ax1x.com/2020/10/24/BZ8A4U.png", // 暴雪 STORM_SNOW
+    DUST: "https://s1.ax1x.com/2020/10/24/BZ8hV0.png", // 浮尘  DUST
+    SAND: "https://s1.ax1x.com/2020/10/24/BZ84aV.png", // 沙尘  SAND
+    WIND: "https://s1.ax1x.com/2020/10/24/BZ8TGF.png", // 大风  WIND
   }
-    return text
-}
-function AQI(){
-
-  const files = FileManager.local()
-  const cachePath = files.joinPath(files.documentsDirectory(), "weather-cal-cache")
-  const cacheExists = files.fileExists(cachePath)
-  const cacheDate = cacheExists ? files.modificationDate(cachePath) : 0
-  var text = "暂无数据"
-  // If cache exists and it's been less than 60 seconds since last request, use cached data.
-  if (cacheExists) {
-    const cache = files.readString(cachePath)
-    let weatherDataRaw = JSON.parse(cache)
-    if(weatherDataRaw.cod == 401){return text}
-    let realtimeData = weatherDataRaw.result.realtime
-    const aqiNum = realtimeData.air_quality.aqi.usa//PM2.5
-    text = String("空气指数:"+aqiNum)
+  // 判断图像是否存在以及何时保存
+  const path = files.joinPath(files.documentsDirectory(), weatherName)
+  const exists = files.fileExists(path)
+  // 如果已有背景图像并且不打开每次运行时重新选择图像时使用缓存已有的背景图像。
+  if (exists) {
+    const data = files.readImage(path)
+    return data
   }
-    return text
+    let imgUrl = weatherIcons[weatherName]
+    const request = new Request(imgUrl)
+    const data = await request.loadImage()
+    files.writeImage(path, data)
+    return data
 }
+
 /*
  * WIDGET ITEMS/小部件项目
  * These functions display items on the widget.
@@ -963,14 +830,6 @@ async function events(column) {
       const tomorrowSeconds = Math.floor(currentDate.getTime() / 1000) - 978220800
       tomorrowStack.url = 'calshow:' + tomorrowSeconds
       currentStack = tomorrowStack
-      
-    // Mimic the formatting of an event title, mostly.
-    // 事件标题的格式
-//       const eventLabelStack = align(currentStack)
-//       const eventLabel = provideText(event.title, eventLabelStack, textFormat.eventLabel)
-//       eventLabelStack.setPadding(padding, padding, padding, padding)
-//       
-//       log(eventLabel)
       continue
     }
     
@@ -1029,10 +888,8 @@ async function events(column) {
 // 显示当前天气在小部件上
 async function current(column) {
 
-  // Requirements: weather and sunrise
+  // Requirements: weather
   if (!weatherData) { await setupWeather() }
-  if (!sunData) { await setupSunrise() }
-
   // Set up the current weather stack.
   // 设置当前天气的Stack
   let currentWeatherStack = column.addStack()
@@ -1050,7 +907,8 @@ async function current(column) {
   // Show the current condition symbol.
   // 显示当前天气的图标
   let mainConditionStack = align(currentWeatherStack)
-  let mainCondition = mainConditionStack.addImage(provideConditionSymbol(weatherData.currentCondition,isNight(currentDate)))
+  let mainConditionImg= await getWeatherIcons(weatherData.currentCondition)
+  let mainCondition = mainConditionStack.addImage(mainConditionImg)
   mainCondition.imageSize = new Size(22,22)
   mainConditionStack.setPadding(weatherSettings.showLocation ? 0 : padding, padding, 0, padding) //当前天气图标的间距设置，调整这项以更改边距，依次是逆时针顺序上、左、下、右
   
@@ -1100,17 +958,14 @@ async function current(column) {
 //显示未来的天气
 async function future(column) {
 
-  // Requirements: weather and sunrise
+  // Requirements: weather
   if (!weatherData) { await setupWeather() }
-  if (!sunData) { await setupSunrise() }
 
   // Set up the future weather stack.
   // 设置未来天气的Stack
   let futureWeatherStack = column.addStack()
   futureWeatherStack.layoutVertically()
   futureWeatherStack.setPadding(0, 0, 0, 0)
-//   futureWeatherStack.url = "https://weather.com/weather/tenday/l/" + locationData.latitude + "," + locationData.longitude
-
   // Determine if we should show the next hour.
   // 判断是否应该显示下一个小时的天气
   const showNextHour = (currentDate.getHours() < weatherSettings.tomorrowShownAtHour)
@@ -1140,7 +995,9 @@ async function future(column) {
     nightCondition = false 
   }
   
-  let subCondition = subConditionStack.addImage(provideConditionSymbol(showNextHour ? weatherData.nextHourCondition : weatherData.tomorrowCondition,nightCondition))
+  let subConditionImg = await getWeatherIcons(showNextHour ? weatherData.nextHourCondition : weatherData.tomorrowCondition)
+  let subCondition = subConditionStack.addImage(subConditionImg)
+  
   const subConditionSize = showNextHour ? 14 : 18
   subCondition.imageSize = new Size(subConditionSize, subConditionSize)
   subConditionStack.addSpacer(5)
@@ -1240,55 +1097,6 @@ async function battery(column) {
   batteryStack.setPadding(padding/2, padding, 0, padding) //电池电量的间距设置，调整这项以更改边距，依次是逆时针顺序上、左、下、右
 
 }
-
-// Show the sunrise or sunset time.
-// 显示日出或日落时间
-async function sunrise(column) {
-  
-  // Requirements: sunrise
-  if (!sunData) { await setupSunrise() }
-  
-  const sunrise = sunData.sunrise
-  const sunset = sunData.sunset
-  const showWithin = sunriseSettings.showWithin
-  const closeToSunrise = closeTo(sunrise) <= showWithin
-  const closeToSunset = closeTo(sunset) <= showWithin
-
-  // If we only show sometimes and we're not close, return.
-  if (showWithin > 0 && !closeToSunrise && !closeToSunset) { return }
-  
-  // Otherwise, determine which time to show.
-  const showSunrise = closeTo(sunrise) <= closeTo(sunset)
-  
-  // Set up the stack.
-  // 设置Stack
-  const sunriseStack = align(column)
-  sunriseStack.setPadding(padding/2, padding, padding/2, padding) //日落日出的间距设置，调整这项以更改边距，依次是逆时针顺序上、左、下、右
-  sunriseStack.layoutHorizontally()
-  sunriseStack.centerAlignContent()
-
-  sunriseStack.addSpacer(padding * 0.3)
-
-  // Add the correct symbol.
-  // 添加正确的符号
-  const symbolName = showSunrise ? "sunrise.fill" : "sunset.fill"
-  const symbol = sunriseStack.addImage(SFSymbol.named(symbolName).image)
-  symbol.imageSize = new Size(22,22)
-  
-  sunriseStack.addSpacer(padding)
-  
-  // Add the time.
-  // 添加时间
-  const timeText = formatTime(showSunrise ? new Date(sunrise) : new Date(sunset))
-  const time = provideText(timeText, sunriseStack, textFormat.sunrise)
-}
-
-// Allow for either term to be used.
-// 允许使用任一术语
-async function sunset(column) {
-  return await sunrise(column)
-}
-
 /*
  * HELPER FUNCTIONS
  * 帮助函数
@@ -1297,11 +1105,7 @@ async function sunset(column) {
  * ===================================================
  */
 
-// Determines if the provided date is at night.
-function isNight(dateInput) {
-  const timeValue = dateInput.getTime()
-  return (timeValue < sunData.sunrise) || (timeValue > sunData.sunset)
-}
+
 
 // Determines if two dates occur on the same day
 function sameDay(d1, d2) {
@@ -1383,47 +1187,6 @@ function provideBatteryIcon() {
   draw.fillPath()
   return draw.getImage()
 }
-
-// Provide a symbol based on the condition.
-function provideConditionSymbol(cond,night) {
-  
-  // Define our symbol equivalencies.
-  let symbols = {
-  
-    // Thunderstorm
-    "2": function() { return "cloud.bolt.rain.fill" },
-    
-    // Drizzle
-    "3": function() { return "cloud.drizzle.fill" },
-    
-    // Rain
-    "5": function() { return (cond == 511) ? "cloud.sleet.fill" : "cloud.rain.fill" },
-    
-    // Snow
-    "6": function() { return (cond >= 611 && cond <= 613) ? "cloud.snow.fill" : "snow" },
-    
-    // Atmosphere
-    "7": function() {
-      if (cond == 781) { return "tornado" }
-      if (cond == 701 || cond == 741) { return "cloud.fog.fill" }
-      return night ? "cloud.fog.fill" : "sun.haze.fill"
-    },
-    
-    // Clear and clouds
-    "8": function() {
-      if (cond == 800 || cond == 801) { return night ? "moon.stars.fill" : "sun.max.fill" }
-      if (cond == 802 || cond == 803) { return night ? "cloud.moon.fill" : "cloud.sun.fill" }
-      return "cloud.fill"
-    }
-  }
-  
-  // Find out the first digit.
-  let conditionDigit = Math.floor(cond / 100)
-  
-  // Get the symbol.
-  return SFSymbol.named(symbols[conditionDigit]()).image
-}
-
 // Provide a font based on the input.
 function provideFont(fontName, fontSize) {
   const fontGenerator = {
