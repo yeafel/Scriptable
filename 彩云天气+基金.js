@@ -15,7 +15,7 @@ async function setupExpectString(){
     var expectStr = ""
     for (let index in expectData) {
       // 当前基金单位净值估算日涨幅,单位为百分比
-      let expectWorth = (' 🚥' + expectData[index].expectGrowth+"%")
+      let expectWorth = (' 🚥 ' + expectData[index].expectGrowth+"%")
       let name = expectData[index].name
       name = name.replace("增强", "")
       name = name.replace("分级", " ")
@@ -147,7 +147,7 @@ const eventSettings = {
 
   // Show tomorrow's events.
   // 是否显示明天/后的事件，不显示则设置为false
-  ,showTomorrow: true
+  ,showTomorrow: false
 
   // Can be blank "" or set to "duration" or "time" to display how long an event is.
   // “”内可以为空白，也可以设置为“ duration”或“ time”以显示事件的持续时间（则设置了之后会显示事件的时间XX小时，XX分钟）
@@ -854,7 +854,7 @@ async function date(column) {
   // 如果是有硬编码文本或有事件显示，则显示为小日期样式
   if (dateSettings.staticDateSize == "small" || (dateSettings.dynamicDateSize && eventData.eventsAreVisible)) {
     let dateStack = align(column)
-    dateStack.setPadding(padding-5, padding-5, padding/2, padding)
+    dateStack.setPadding(padding-5, padding-5, padding-3, padding)
 
     df.dateFormat = dateSettings.smallDateFormat
     let dateText = provideText(df.string(currentDate), dateStack, textFormat.smallDate)
@@ -948,16 +948,16 @@ async function events(column) {
   // 将每个事件添加到Stack中
   var currentStack = eventStack
   const futureEvents = eventData.futureEvents
+
+
   for (let i = 0; i < futureEvents.length; i++) {
     
     const event = futureEvents[i]
     const bottomPadding = (padding-10 < 0) ? 0 : padding-10
-    
+
     // If it's the tomorrow label, change to the tomorrow stack.
     // 如果是明天的lable，则改用明天的Stack
-    
     if (event.isLabel) {
-      /*
       let tomorrowStack = column.addStack()
       tomorrowStack.layoutVertically()
       const tomorrowSeconds = Math.floor(currentDate.getTime() / 1000) - 978220800
@@ -966,11 +966,11 @@ async function events(column) {
       
     // Mimic the formatting of an event title, mostly.
     // 事件标题的格式
-      event.title = ""
-      const eventLabelStack = align(currentStack)
-      const eventLabel = provideText(event.title, eventLabelStack, textFormat.eventLabel)
-      eventLabelStack.setPadding(padding, padding, padding, padding)
-      */
+//       const eventLabelStack = align(currentStack)
+//       const eventLabel = provideText(event.title, eventLabelStack, textFormat.eventLabel)
+//       eventLabelStack.setPadding(padding, padding, padding, padding)
+//       
+//       log(eventLabel)
       continue
     }
     
@@ -988,7 +988,7 @@ async function events(column) {
 
     const title = provideText(event.title.trim(), titleStack, textFormat.eventTitle)
     titleStack.setPadding(padding-4, padding, event.isAllDay ? padding : padding/5, padding)
-    
+
     // If we're showing a color on the right, show it.
     if (showCalendarColor.length && showCalendarColor.includes("right")) {
       let colorItemText = " " + provideTextSymbol(colorShape)
@@ -998,21 +998,17 @@ async function events(column) {
   
     // If there are too many events, limit the line height.
     // //如果事件太多，限制行高
-    if (futureEvents.length >= 4) { title.lineLimit = 1 }
+    if (futureEvents.length >= 3) { title.lineLimit = 1 }
 
     // If it's an all-day event, we don't need a time.
     // 如果是全天的的事件，则不显示时间
     if (event.isAllDay) { continue }
-    
-    // Format the time information.
-    // 格式化时间信息
-    let timeText = formatTime(event.startDate)
-    timeText = "明日"+timeText
+
     // If we show the length as time, add an en dash and the time.
+    let timeText = formatTime(event.startDate)
     // 如果显示为时间，添加一个破折号“-”
     if (eventSettings.showEventLength == "time") { 
       timeText += "–" + formatTime(event.endDate) 
-      
     // If we should it as a duration, add the minutes.
     } else if (eventSettings.showEventLength == "duration") {
       const duration = (event.endDate.getTime() - event.startDate.getTime()) / (1000*60)
@@ -1023,7 +1019,6 @@ async function events(column) {
       const showSpace = hourText.length && minuteText.length
       timeText += "·" + hourText + (showSpace ? " " : "") + minuteText
     }
-
     const timeStack = align(currentStack)
     const time = provideText(timeText, timeStack, textFormat.eventTime)
     timeStack.setPadding(0, 10, 0, 0)
@@ -1323,8 +1318,8 @@ function closeTo(time) {
 // Format the time for a Date input.
 function formatTime(date) {
   let df = new DateFormatter()
-  df.locale = locale
-  df.useNoDateStyle()
+//   df.locale = locale
+  df.useShortDateStyle()
   df.useShortTimeStyle()
   return df.string(date)
 }
