@@ -6,7 +6,8 @@
  * Use this section to set up the widget.
  * 使用此部分来设置小部件
  * ======================================
- */10.26-17.58
+ * update: 10.27-15:15
+ */
 
 //设置基金代码
 const expectID = "005176,161725,001556,005693"
@@ -109,7 +110,7 @@ const eventSettings = {
   
   // When no events remain, show a hard-coded "message", a "greeting", or "none".
   // 如果没有事件，显示硬编码的“消息”，“问候”或“无”。
-  ,noEventBehavior: "greeting"
+  ,noEventBehavior: "message"
 }
 // WEATHER/天气
 // ===========
@@ -162,7 +163,7 @@ const localizedText = {
 
   // Shown when noEventBehavior is set to "message".
   // 当没有事件时则显示此处的“message”
-  ,noEventMessage:currentDescription()
+  ,noEventMessage:await getDataSC()
   
   // The text shown after the hours and minutes of an event duration.
   // 事件持续时间显示的文本（小时/分钟）。
@@ -196,10 +197,18 @@ const textFormat = {
   
   customText:  { size: 11, color: "", font: "" },
   aqiText:     { size: 10, color: "", font: "semibold" },
+  wthDecText:  { size: 10, color: "#808080", font: "semibold" },
   battery:     { size: 14, color: "", font: "medium" },
 }
+//获取今日诗词数据
+async function getDataSC() {
+    const url = "https://v1.jinrishici.com/all"
+    const request = new Request(url)
+    const data = await request.loadJSON()
+    log(data)
+    return data.content
+}
 
-//自定义部分功能
 // 基金数据文本处理
 async function setupExpectString(){
   const expectData = await dataGet()
@@ -210,7 +219,7 @@ async function setupExpectString(){
     let name = expectData[index].name
     name = name.replace("增强", "")
     name = name.replace("分级", " ")
-    name = name.replace("联接C", " ")
+    name = name.replace("联接C", "  ")
     expectStr=(expectStr+name+expectWorth+"\n")
   }
   return expectStr
@@ -223,6 +232,7 @@ async function dataGet() {
   const data = await request.loadJSON()
   return data.data
 }
+
 //未来天气情况描述
 function currentDescription(){
 
@@ -243,7 +253,7 @@ function currentDescription(){
     return text
 }
 //AQI
-function AQI(){
+function aqiString(){
 
   const files = FileManager.local()
   const cachePath = files.joinPath(files.documentsDirectory(), "weather-cal-cache")
@@ -358,353 +368,38 @@ else if (widgetPreview == "large") { widget.presentLarge() }
 Script.complete()
 
 /*
- * LAYOUT FUNCTIONS/布局函数
- * These functions manage spacing and alignment.
- * 这些函数管理间距和对齐方式
- * =============================================
- */
-
-// Makes a new row on the widget.
-// 在窗口小部件上创建新行
-function row(input = null) {
-
-  function makeRow() {
-    currentRow = widget.addStack()
-    currentRow.layoutHorizontally()
-    currentRow.setPadding(0, 0, 0, 0)
-    currentColumn.spacing = 0
-    
-    // If input was given, make a column of that size.
-    // 如果输入了参数则使用参数的尺寸大小来创建
-    if (input > 0) { currentRow.size = new Size(0,input) }
-  }
-  
-  // If there's no input or it's a number, it's being called in the layout declaration.
-  if (!input || typeof input == "number") { return makeRow }
-  
-  // Otherwise, it's being called in the generator.
-  else { makeRow() }
-}
-
-// Makes a new column on the widget.
-function column(input = null) {
- 
-  function makeColumn() {
-    currentColumn = currentRow.addStack()
-    currentColumn.layoutVertically()
-    currentColumn.setPadding(0, 0, 0, 0)
-    currentColumn.spacing = 0
-    
-    // If input was given, make a column of that size.
-    if (input > 0) { currentColumn.size = new Size(input,0) }
-  }
-  
-  // If there's no input or it's a number, it's being called in the layout declaration.
-  if (!input || typeof input == "number") { return makeColumn }
-  
-  // Otherwise, it's being called in the generator.
-  else { makeColumn() }
-}
-
-// Create an aligned stack to add content to.
-// 创建对齐的Stack以向其添加内容
-function align(column) {
-  
-  // Add the containing stack to the column.
-  // 将包含Stack的内容添加到该列中
-  let alignmentStack = column.addStack()
-  alignmentStack.layoutHorizontally()
-  
-  // Get the correct stack from the alignment function.
-  // 从对齐函数获取正确的Stack
-  let returnStack = currentAlignment(alignmentStack)
-  returnStack.layoutVertically()
-  return returnStack
-}
-
-// Create a right-aligned stack.
-// 创建一个居右对齐的Stack
-function alignRight(alignmentStack) {
-  alignmentStack.addSpacer()
-  let returnStack = alignmentStack.addStack()
-  return returnStack
-}
-
-// Create a left-aligned stack.
-// 创建一个居左对齐的Stack
-function alignLeft(alignmentStack) {
-  let returnStack = alignmentStack.addStack()
-  alignmentStack.addSpacer()
-  return returnStack
-}
-
-// Create a center-aligned stack.
-// 创建一个居中对齐的Stack
-function alignCenter(alignmentStack) {
-  alignmentStack.addSpacer()
-  let returnStack = alignmentStack.addStack()
-  alignmentStack.addSpacer()
-  return returnStack
-}
-
-// This function adds a space, with an optional amount.
-// 此函数添加一个间距，并带有一个可选的数值
-function space(input = null) { 
-  
-  // This function adds a spacer with the input width.
-  // 此函数在输入宽度处添加一个间距
-  function spacer(column) {
-  
-    // If the input is null or zero, add a flexible spacer.
-    // 如果输入为null或零时，添加一个间距
-    if (!input || input == 0) { column.addSpacer() }
-    
-    // Otherwise, add a space with the specified length.
-    // 否则，添加具有指定长度的间距
-    else { column.addSpacer(input) }
-  }
-  
-  // If there's no input or it's a number, it's being called in the column declaration.
-  // 如果没有输入或是数字，则在列声明中调用它
-  if (!input || typeof input == "number") { return spacer }
-  
-  // Otherwise, it's being called in the column generator.
-  // 否则，将在列生成器中调用它
-  else { input.addSpacer() }
-}
-
-// Change the current alignment to right.
-// 将当前对齐方式更改为居右
-function right(x) { currentAlignment = alignRight }
-
-// Change the current alignment to left.
-// 将当前对齐方式更改为居左
-function left(x) { currentAlignment = alignLeft }
-
-// Change the current alignment to center.
-// 将当前对齐方式更改为居中
-function center(x) { currentAlignment = alignCenter }
-
-/*
- * SETUP FUNCTIONS
- * 设定函数
- * These functions prepare data needed for items.
- * 以下这些函数是小部件所需的数据
- * ==============================================
- */
-
-// Set up the eventData object.
-// 设定事件日期的对象
-async function setupEvents() {
-  
-  eventData = {}
-  const calendars = eventSettings.selectCalendars
-  const numberOfEvents = eventSettings.numberOfEvents
-
-  // Function to determine if an event should be shown.
-  // 判断是否应该显示事件的函数。
-  function shouldShowEvent(event) {
-  
-    // If events are filtered and the calendar isn't in the selected calendars, return false.
-    // 如果事件被过滤，并且日历不在所选日历中，则返回false
-    if (calendars.length && !calendars.includes(event.calendar.title)) { return false }
-
-    // Hack to remove canceled Office 365 events.
-    // 删除已取消的Office 365事件
-    if (event.title.startsWith("Canceled:")) { return false }
-
-    // If it's an all-day event, only show if the setting is active.
-    // 如果是全天事件，则仅在设置处于active状态时显示
-    if (event.isAllDay) { return eventSettings.showAllDay }
-
-    // Otherwise, return the event if it's in the future.
-    // 否则，会返回处于未来的事件
-    return (event.startDate.getTime() > currentDate.getTime())
-  }
-  
-  // Determine which events to show, and how many.
-  // 判断要显示的事件以及数量
-  const todayEvents = await CalendarEvent.today([])
-  let shownEvents = 0
-  let futureEvents = []
-  
-  for (const event of todayEvents) {
-    if (shownEvents == numberOfEvents) { break }
-    if (shouldShowEvent(event)) {
-      futureEvents.push(event)
-      shownEvents++
-    }
-  }
-
-  // If there's room and we need to, show tomorrow's events.
-  // 如果需要的话，显示明天的事件
-  let multipleTomorrowEvents = false
-  if (eventSettings.showTomorrow && shownEvents < numberOfEvents) {
-  
-    const tomorrowEvents = await CalendarEvent.tomorrow([])
-    for (const event of tomorrowEvents) {
-      if (shownEvents == numberOfEvents) { break }
-      if (shouldShowEvent(event)) {
-      
-        // Add the tomorrow label prior to the first tomorrow event.
-        // 在第一个明天事件之前添加“明天标签”
-        if (!multipleTomorrowEvents) { 
-          
-          // The tomorrow label is pretending to be an event.
-          futureEvents.push({ title: localizedText.tomorrowLabel.toUpperCase(), isLabel: true })
-          multipleTomorrowEvents = true
-        }
-        
-        // Show the tomorrow event and increment the counter.
-        // 显示明天的事件并增加计数器
-        futureEvents.push(event)
-        shownEvents++
-      }
-    }
-  }
-  
-  // Store the future events, and whether or not any events are displayed.
-  // 存储未来的事件，以及是否显示全部事件
-  eventData.futureEvents = futureEvents
-  eventData.eventsAreVisible = (futureEvents.length > 0) && (eventSettings.numberOfEvents > 0)
-}
-// Set up the locationData object.
-// 设置位置数据对象
-async function setupLocation() {
-
-  locationData = {}
-  const locationPath = files.joinPath(files.documentsDirectory(), "weather-cal-loc")
-
-  // If our location is unlocked or cache doesn't exist, ask iOS for location.
-  // 如果位置已解锁定或不存在缓存，询问iOS
-  var readLocationFromFile = false
-  if (!lockLocation || !files.fileExists(locationPath)) {
-    try {
-      const location = await Location.current()
-      const geocode = await Location.reverseGeocode(location.latitude, location.longitude, locale)
-      locationData.latitude = location.latitude
-      locationData.longitude = location.longitude
-      locationData.locality = geocode[0].locality
-      files.writeString(locationPath, location.latitude + "|" + location.longitude + "|" + locationData.locality)
-    
-    } catch(e) {
-      // If we fail in unlocked mode, read it from the cache.
-      if (!lockLocation) { readLocationFromFile = true }
-      
-      // We can't recover if we fail on first run in locked mode.
-      else { return }
-    }
-  }
-  
-  // If our location is locked or we need to read from file, do it.
-  // 如果位置信息被锁定或需要从文件中读取，执行此操作
-  if (lockLocation || readLocationFromFile) {
-    const locationStr = files.readString(locationPath).split("|")
-    locationData.latitude = locationStr[0]
-    locationData.longitude = locationStr[1]
-    locationData.locality = locationStr[2]
-  }
-}
-// Set up the weatherData object.
-// 设置天气数据对象
-async function setupWeather() {
-
-  // Requirements: location
-  if (!locationData) { await setupLocation() }
-
-  // Set up the cache.
-  // 设定缓存
-  const cachePath = files.joinPath(files.documentsDirectory(), "weather-cal-cache")
-  const cacheExists = files.fileExists(cachePath)
-  const cacheDate = cacheExists ? files.modificationDate(cachePath) : 0
-  var weatherDataRaw
-
-  // If cache exists and it's been less than 60 seconds since last request, use cached data.
-  // 如果存在缓存，并且距离上次请求少于60秒，使用缓存的数据
-  if (cacheExists && (currentDate.getTime() - cacheDate.getTime()) < 600000) {
-    const cache = files.readString(cachePath)
-    weatherDataRaw = JSON.parse(cache)
-
-  // Otherwise, use the API to get new weather data.
-  // 否则，使用API​​获取新的天气数据
-  } else {
-    const weatherReq = "https://api.caiyunapp.com/v2.5/S45Fnpxcwyq0QT4b/"+locationData.longitude+","+locationData.latitude+"/weather.json?lang=zh_CN"
-    weatherDataRaw = await new Request(weatherReq).loadJSON()
-    files.writeString(cachePath, JSON.stringify(weatherDataRaw))
-
-  }
-  // 解析彩云天气数据
-    let resultData = weatherDataRaw.result
-    let realtimeData = resultData.realtime
-    const temperature = realtimeData.temperature//温度
-
-    let dailyData = resultData.daily
-    const todayHigh = dailyData.temperature[0].max//今日最高温度
-    const todayLow = dailyData.temperature[0].min//今日最低温度
-    const tomorrowHigh = dailyData.temperature[1].max//明日最高
-    const tomorrowLow = dailyData.temperature[1].min//明日最低
-    
-  // Store the weather values.
-  // 储存天气数据值
-  weatherData = {}
-  weatherData.currentTemp = temperature
-  weatherData.currentCondition = realtimeData.skycon//天气图标
-  weatherData.todayHigh = todayHigh
-  weatherData.todayLow = todayLow
-  weatherData.nextHourTemp = resultData.hourly.temperature[1].value
-  weatherData.nextHourCondition = realtimeData.skycon
-
-  weatherData.tomorrowHigh = tomorrowHigh
-  weatherData.tomorrowLow = tomorrowLow
-  weatherData.tomorrowCondition = dailyData.skycon_08h_20h[1].value
-
-}
-async function getWeatherIcons(weatherName) {
-  const weatherIcons = {
-    CLEAR_DAY: "https://s1.ax1x.com/2020/10/24/BZSMJe.png", // 晴（白天） CLEAR_DAY
-    CLEAR_NIGHT: "https://s1.ax1x.com/2020/10/24/BZS8sI.png", // 晴（夜间） CLEAR_NIGHT
-    PARTLY_CLOUDY_DAY: "https://s1.ax1x.com/2020/10/24/BZSKiD.png", // 多云（白天）  PARTLY_CLOUDY_DAY
-    PARTLY_CLOUDY_NIGHT: "https://s1.ax1x.com/2020/10/24/BZSKiD.png", // 多云（夜间）  PARTLY_CLOUDY_NIGHT
-    CLOUDY: "https://s1.ax1x.com/2020/10/24/BZSnIO.png", // 阴（白天）  CLOUDY
-    CLOUDY_NIGHT:"https://s1.ax1x.com/2020/10/24/BZS3QA.png", // 阴（夜间）  CLOUDY
-    LIGHT_HAZE: "https://s1.ax1x.com/2020/10/24/BZ8Rrn.png", // 轻度雾霾   LIGHT_HAZE
-    MODERATE_HAZE: "https://s1.ax1x.com/2020/10/24/BZ3whF.png", // 中度雾霾  MODERATE_HAZE
-    HEAVY_HAZE: "https://s1.ax1x.com/2020/10/24/BZ3akT.png", // 重度雾霾   HEAVY_HAZE
-    LIGHT_RAIN: "https://s1.ax1x.com/2020/10/24/BZSdJg.png", // 小雨 LIGHT_RAIN
-    MODERATE_RAIN: "https://s1.ax1x.com/2020/10/24/BZSwWQ.png", // 中雨 MODERATE_RAIN
-    HEAVY_RAIN: "https://s1.ax1x.com/2020/10/24/BZS0zj.png", // 大雨  HEAVY_RAIN
-    STORM_RAIN: "https://s1.ax1x.com/2020/10/24/BZSsLq.png", // 暴雨 STORM_RAIN
-    FOG: "https://s1.ax1x.com/2020/10/24/BZ82Ks.png", // 雾 FOG
-    LIGHT_SNOW: "https://s1.ax1x.com/2020/10/24/BZSbTK.png", // 小雪  LIGHT_SNOW
-    MODERATE_SNOW: "https://s1.ax1x.com/2020/10/24/BZSLFO.png", // 中雪 MODERATE_SNOW
-    HEAVY_SNOW: "https://s1.ax1x.com/2020/10/24/BZSOYD.png", // 大雪  HEAVY_SNOW
-    STORM_SNOW: "https://s1.ax1x.com/2020/10/24/BZ8A4U.png", // 暴雪 STORM_SNOW
-    DUST: "https://s1.ax1x.com/2020/10/24/BZ8hV0.png", // 浮尘  DUST
-    SAND: "https://s1.ax1x.com/2020/10/24/BZ84aV.png", // 沙尘  SAND
-    WIND: "https://s1.ax1x.com/2020/10/24/BZ8TGF.png", // 大风  WIND
-  }
-  // 判断图像是否存在以及何时保存
-  const path = files.joinPath(files.documentsDirectory(), weatherName)
-  const exists = files.fileExists(path)
-  // 如果已有背景图像并且不打开每次运行时重新选择图像时使用缓存已有的背景图像。
-  if (exists) {
-    const data = files.readImage(path)
-    return data
-  }
-    let imgUrl = weatherIcons[weatherName]
-    const request = new Request(imgUrl)
-    const data = await request.loadImage()
-    files.writeImage(path, data)
-    return data
-}
-
-/*
  * WIDGET ITEMS/小部件项目
  * These functions display items on the widget.
  * 以下这些函数将是显示在小部件上的项目
  * ============================================
  */
+// Return a text-creation function.
+// 返回一个文本创建函数
+function text(input = null) {
 
+  function displayText(column) {
+  
+    // Don't do anything if the input is blank.
+    // 如果输入为空，则不执行任何操作
+    if (!input || input == "") { return }
+  
+    // Otherwise, add the text.
+    // 否则添加该文本
+    const textStack = align(column)
+    textStack.setPadding(0,0,0,0)
+    if(input == "aqi"){
+      textStack.setPadding(3,0,0,0)
+      const textDisplay = provideText(aqiString(), textStack, textFormat.aqiText)
+    }else if(input == "weatherDec"){
+      textStack.setPadding(0,0,0,0)
+      const textDisplay = provideText(currentDescription(), textStack, textFormat.wthDecText)
+
+    }else{
+      const textDisplay = provideText(input, textStack, textFormat.customText)
+    }
+  }
+  return displayText
+}
 // Display the date on the widget.
 // 在小部件上显示日期
 async function date(column) {
@@ -751,7 +446,7 @@ async function greeting(column) {
     const hour = currentDate.getHours()
     log(hour)
     if (hour < 5)  { return localizedText.nightGreeting }
-    if (hour < 11) { return localizedText.morningGreeting }
+    if (hour < 12) { return localizedText.morningGreeting }
     if (hour < 14)  { return localizedText.noonGreeting }
     if (hour < 19)  { return localizedText.afternoonGreeting }
     if (hour < 23) { return localizedText.eveningGreeting }
@@ -1023,32 +718,6 @@ async function future(column) {
   }
 }
 
-// Return a text-creation function.
-// 返回一个文本创建函数
-function text(input = null) {
-
-  function displayText(column) {
-  
-    // Don't do anything if the input is blank.
-    // 如果输入为空，则不执行任何操作
-    if (!input || input == "") { return }
-  
-    // Otherwise, add the text.
-    // 否则添加该文本
-    const textStack = align(column)
-    textStack.setPadding(0,0,0,0)
-    if(input == "aqi"){
-      const textDisplay = provideText(AQI(), textStack, textFormat.aqiText)
-    }else if(input == "weatherDec"){
-      textStack.setPadding(0,0,0,0)
-      const textDisplay = provideText(currentDescription(), textStack, textFormat.aqiText)
-
-    }else{
-      const textDisplay = provideText(input, textStack, textFormat.customText)
-    }
-  }
-  return displayText
-}
 
 // Add a battery element to the widget; consisting of a battery icon and percentage.
 // 向小部件添加电池元素；由电池图标和百分比组成
@@ -1098,15 +767,353 @@ async function battery(column) {
 
 }
 /*
+ * SETUP FUNCTIONS
+ * 设定函数
+ * These functions prepare data needed for items.
+ * 以下这些函数是小部件所需的数据
+ * ==============================================
+ */
+
+// Set up the eventData object.
+// 设定事件日期的对象
+async function setupEvents() {
+  
+  eventData = {}
+  const calendars = eventSettings.selectCalendars
+  const numberOfEvents = eventSettings.numberOfEvents
+
+  // Function to determine if an event should be shown.
+  // 判断是否应该显示事件的函数。
+  function shouldShowEvent(event) {
+  
+    // If events are filtered and the calendar isn't in the selected calendars, return false.
+    // 如果事件被过滤，并且日历不在所选日历中，则返回false
+    if (calendars.length && !calendars.includes(event.calendar.title)) { return false }
+
+    // Hack to remove canceled Office 365 events.
+    // 删除已取消的Office 365事件
+    if (event.title.startsWith("Canceled:")) { return false }
+
+    // If it's an all-day event, only show if the setting is active.
+    // 如果是全天事件，则仅在设置处于active状态时显示
+    if (event.isAllDay) { return eventSettings.showAllDay }
+
+    // Otherwise, return the event if it's in the future.
+    // 否则，会返回处于未来的事件
+    return (event.startDate.getTime() > currentDate.getTime())
+  }
+  
+  // Determine which events to show, and how many.
+  // 判断要显示的事件以及数量
+  const todayEvents = await CalendarEvent.today([])
+  let shownEvents = 0
+  let futureEvents = []
+  
+  for (const event of todayEvents) {
+    if (shownEvents == numberOfEvents) { break }
+    if (shouldShowEvent(event)) {
+      futureEvents.push(event)
+      shownEvents++
+    }
+  }
+
+  // If there's room and we need to, show tomorrow's events.
+  // 如果需要的话，显示明天的事件
+  let multipleTomorrowEvents = false
+  if (eventSettings.showTomorrow && shownEvents < numberOfEvents) {
+  
+    const tomorrowEvents = await CalendarEvent.tomorrow([])
+    for (const event of tomorrowEvents) {
+      if (shownEvents == numberOfEvents) { break }
+      if (shouldShowEvent(event)) {
+      
+        // Add the tomorrow label prior to the first tomorrow event.
+        // 在第一个明天事件之前添加“明天标签”
+        if (!multipleTomorrowEvents) { 
+          
+          // The tomorrow label is pretending to be an event.
+          futureEvents.push({ title: localizedText.tomorrowLabel.toUpperCase(), isLabel: true })
+          multipleTomorrowEvents = true
+        }
+        
+        // Show the tomorrow event and increment the counter.
+        // 显示明天的事件并增加计数器
+        futureEvents.push(event)
+        shownEvents++
+      }
+    }
+  }
+  
+  // Store the future events, and whether or not any events are displayed.
+  // 存储未来的事件，以及是否显示全部事件
+  eventData.futureEvents = futureEvents
+  eventData.eventsAreVisible = (futureEvents.length > 0) && (eventSettings.numberOfEvents > 0)
+}
+// Set up the locationData object.
+// 设置位置数据对象
+async function setupLocation() {
+
+  locationData = {}
+  const locationPath = files.joinPath(files.documentsDirectory(), "weather-cal-loc")
+
+  // If our location is unlocked or cache doesn't exist, ask iOS for location.
+  // 如果位置已解锁定或不存在缓存，询问iOS
+  var readLocationFromFile = false
+  if (!lockLocation || !files.fileExists(locationPath)) {
+    try {
+      const location = await Location.current()
+      const geocode = await Location.reverseGeocode(location.latitude, location.longitude, locale)
+      locationData.latitude = location.latitude
+      locationData.longitude = location.longitude
+      locationData.locality = geocode[0].locality
+      files.writeString(locationPath, location.latitude + "|" + location.longitude + "|" + locationData.locality)
+    
+    } catch(e) {
+      // If we fail in unlocked mode, read it from the cache.
+      if (!lockLocation) { readLocationFromFile = true }
+      
+      // We can't recover if we fail on first run in locked mode.
+      else { return }
+    }
+  }
+  
+  // If our location is locked or we need to read from file, do it.
+  // 如果位置信息被锁定或需要从文件中读取，执行此操作
+  if (lockLocation || readLocationFromFile) {
+    const locationStr = files.readString(locationPath).split("|")
+    locationData.latitude = locationStr[0]
+    locationData.longitude = locationStr[1]
+    locationData.locality = locationStr[2]
+  }
+}
+// Set up the weatherData object.
+// 设置天气数据对象
+async function setupWeather() {
+
+  // Requirements: location
+  if (!locationData) { await setupLocation() }
+
+  // Set up the cache.
+  // 设定缓存
+  const cachePath = files.joinPath(files.documentsDirectory(), "weather-cal-cache")
+  const cacheExists = files.fileExists(cachePath)
+  const cacheDate = cacheExists ? files.modificationDate(cachePath) : 0
+  var weatherDataRaw
+
+  // If cache exists and it's been less than 60 seconds since last request, use cached data.
+  // 如果存在缓存，并且距离上次请求少于60秒，使用缓存的数据
+  if (cacheExists && (currentDate.getTime() - cacheDate.getTime()) < 600000) {
+    const cache = files.readString(cachePath)
+    weatherDataRaw = JSON.parse(cache)
+
+  // Otherwise, use the API to get new weather data.
+  // 否则，使用API​​获取新的天气数据
+  } else {
+    const weatherReq = "https://api.caiyunapp.com/v2.5/S45Fnpxcwyq0QT4b/"+locationData.longitude+","+locationData.latitude+"/weather.json?lang=zh_CN"
+    weatherDataRaw = await new Request(weatherReq).loadJSON()
+    files.writeString(cachePath, JSON.stringify(weatherDataRaw))
+
+  }
+  // 解析彩云天气数据
+    let resultData = weatherDataRaw.result
+    let realtimeData = resultData.realtime
+    const temperature = realtimeData.temperature//温度
+
+    let dailyData = resultData.daily
+    const todayHigh = dailyData.temperature[0].max//今日最高温度
+    const todayLow = dailyData.temperature[0].min//今日最低温度
+    const tomorrowHigh = dailyData.temperature[1].max//明日最高
+    const tomorrowLow = dailyData.temperature[1].min//明日最低
+    
+  // Store the weather values.
+  // 储存天气数据值
+  weatherData = {}
+  weatherData.currentTemp = temperature
+  weatherData.currentCondition = realtimeData.skycon//天气图标
+  weatherData.todayHigh = todayHigh
+  weatherData.todayLow = todayLow
+  weatherData.nextHourTemp = resultData.hourly.temperature[1].value
+  weatherData.nextHourCondition = realtimeData.skycon
+
+  weatherData.tomorrowHigh = tomorrowHigh
+  weatherData.tomorrowLow = tomorrowLow
+  weatherData.tomorrowCondition = dailyData.skycon_08h_20h[1].value
+
+}
+async function getWeatherIcons(weatherName) {
+  const weatherIcons = {
+    CLEAR_DAY: "https://s1.ax1x.com/2020/10/24/BZSMJe.png", // 晴（白天） CLEAR_DAY
+    CLEAR_NIGHT: "https://s1.ax1x.com/2020/10/24/BZS8sI.png", // 晴（夜间） CLEAR_NIGHT
+    PARTLY_CLOUDY_DAY: "https://s1.ax1x.com/2020/10/24/BZSKiD.png", // 多云（白天）  PARTLY_CLOUDY_DAY
+    PARTLY_CLOUDY_NIGHT: "https://s1.ax1x.com/2020/10/24/BZSKiD.png", // 多云（夜间）  PARTLY_CLOUDY_NIGHT
+    CLOUDY: "https://s1.ax1x.com/2020/10/24/BZSnIO.png", // 阴（白天）  CLOUDY
+    CLOUDY_NIGHT:"https://s1.ax1x.com/2020/10/24/BZS3QA.png", // 阴（夜间）  CLOUDY
+    LIGHT_HAZE: "https://s1.ax1x.com/2020/10/24/BZ8Rrn.png", // 轻度雾霾   LIGHT_HAZE
+    MODERATE_HAZE: "https://s1.ax1x.com/2020/10/24/BZ3whF.png", // 中度雾霾  MODERATE_HAZE
+    HEAVY_HAZE: "https://s1.ax1x.com/2020/10/24/BZ3akT.png", // 重度雾霾   HEAVY_HAZE
+    LIGHT_RAIN: "https://s1.ax1x.com/2020/10/24/BZSdJg.png", // 小雨 LIGHT_RAIN
+    MODERATE_RAIN: "https://s1.ax1x.com/2020/10/24/BZSwWQ.png", // 中雨 MODERATE_RAIN
+    HEAVY_RAIN: "https://s1.ax1x.com/2020/10/24/BZS0zj.png", // 大雨  HEAVY_RAIN
+    STORM_RAIN: "https://s1.ax1x.com/2020/10/24/BZSsLq.png", // 暴雨 STORM_RAIN
+    FOG: "https://s1.ax1x.com/2020/10/24/BZ82Ks.png", // 雾 FOG
+    LIGHT_SNOW: "https://s1.ax1x.com/2020/10/24/BZSbTK.png", // 小雪  LIGHT_SNOW
+    MODERATE_SNOW: "https://s1.ax1x.com/2020/10/24/BZSLFO.png", // 中雪 MODERATE_SNOW
+    HEAVY_SNOW: "https://s1.ax1x.com/2020/10/24/BZSOYD.png", // 大雪  HEAVY_SNOW
+    STORM_SNOW: "https://s1.ax1x.com/2020/10/24/BZ8A4U.png", // 暴雪 STORM_SNOW
+    DUST: "https://s1.ax1x.com/2020/10/24/BZ8hV0.png", // 浮尘  DUST
+    SAND: "https://s1.ax1x.com/2020/10/24/BZ84aV.png", // 沙尘  SAND
+    WIND: "https://s1.ax1x.com/2020/10/24/BZ8TGF.png", // 大风  WIND
+  }
+  // 判断图像是否存在以及何时保存
+  const path = files.joinPath(files.documentsDirectory(), weatherName)
+  const exists = files.fileExists(path)
+  // 如果已有背景图像并且不打开每次运行时重新选择图像时使用缓存已有的背景图像。
+  if (exists) {
+    const data = files.readImage(path)
+    return data
+  }
+    let imgUrl = weatherIcons[weatherName]
+    const request = new Request(imgUrl)
+    const data = await request.loadImage()
+    files.writeImage(path, data)
+    return data
+}
+
+/*
+ * LAYOUT FUNCTIONS/布局函数
+ * These functions manage spacing and alignment.
+ * 这些函数管理间距和对齐方式
+ * =============================================
+ */
+
+// Makes a new row on the widget.
+// 在窗口小部件上创建新行
+function row(input = null) {
+
+  function makeRow() {
+    currentRow = widget.addStack()
+    currentRow.layoutHorizontally()
+    currentRow.setPadding(0, 0, 0, 0)
+    currentColumn.spacing = 0
+    
+    // If input was given, make a column of that size.
+    // 如果输入了参数则使用参数的尺寸大小来创建
+    if (input > 0) { currentRow.size = new Size(0,input) }
+  }
+  
+  // If there's no input or it's a number, it's being called in the layout declaration.
+  if (!input || typeof input == "number") { return makeRow }
+  
+  // Otherwise, it's being called in the generator.
+  else { makeRow() }
+}
+
+// Makes a new column on the widget.
+function column(input = null) {
+ 
+  function makeColumn() {
+    currentColumn = currentRow.addStack()
+    currentColumn.layoutVertically()
+    currentColumn.setPadding(0, 0, 0, 0)
+    currentColumn.spacing = 0
+    
+    // If input was given, make a column of that size.
+    if (input > 0) { currentColumn.size = new Size(input,0) }
+  }
+  
+  // If there's no input or it's a number, it's being called in the layout declaration.
+  if (!input || typeof input == "number") { return makeColumn }
+  
+  // Otherwise, it's being called in the generator.
+  else { makeColumn() }
+}
+
+// Create an aligned stack to add content to.
+// 创建对齐的Stack以向其添加内容
+function align(column) {
+  
+  // Add the containing stack to the column.
+  // 将包含Stack的内容添加到该列中
+  let alignmentStack = column.addStack()
+  alignmentStack.layoutHorizontally()
+  
+  // Get the correct stack from the alignment function.
+  // 从对齐函数获取正确的Stack
+  let returnStack = currentAlignment(alignmentStack)
+  returnStack.layoutVertically()
+  return returnStack
+}
+
+// Create a right-aligned stack.
+// 创建一个居右对齐的Stack
+function alignRight(alignmentStack) {
+  alignmentStack.addSpacer()
+  let returnStack = alignmentStack.addStack()
+  return returnStack
+}
+
+// Create a left-aligned stack.
+// 创建一个居左对齐的Stack
+function alignLeft(alignmentStack) {
+  let returnStack = alignmentStack.addStack()
+  alignmentStack.addSpacer()
+  return returnStack
+}
+
+// Create a center-aligned stack.
+// 创建一个居中对齐的Stack
+function alignCenter(alignmentStack) {
+  alignmentStack.addSpacer()
+  let returnStack = alignmentStack.addStack()
+  alignmentStack.addSpacer()
+  return returnStack
+}
+
+// This function adds a space, with an optional amount.
+// 此函数添加一个间距，并带有一个可选的数值
+function space(input = null) { 
+  
+  // This function adds a spacer with the input width.
+  // 此函数在输入宽度处添加一个间距
+  function spacer(column) {
+  
+    // If the input is null or zero, add a flexible spacer.
+    // 如果输入为null或零时，添加一个间距
+    if (!input || input == 0) { column.addSpacer() }
+    
+    // Otherwise, add a space with the specified length.
+    // 否则，添加具有指定长度的间距
+    else { column.addSpacer(input) }
+  }
+  
+  // If there's no input or it's a number, it's being called in the column declaration.
+  // 如果没有输入或是数字，则在列声明中调用它
+  if (!input || typeof input == "number") { return spacer }
+  
+  // Otherwise, it's being called in the column generator.
+  // 否则，将在列生成器中调用它
+  else { input.addSpacer() }
+}
+
+// Change the current alignment to right.
+// 将当前对齐方式更改为居右
+function right(x) { currentAlignment = alignRight }
+
+// Change the current alignment to left.
+// 将当前对齐方式更改为居左
+function left(x) { currentAlignment = alignLeft }
+
+// Change the current alignment to center.
+// 将当前对齐方式更改为居中
+function center(x) { currentAlignment = alignCenter }
+
+/*
  * HELPER FUNCTIONS
  * 帮助函数
  * These functions perform duties for other functions.
  * 这些函数都是服务于以上的项目的
  * ===================================================
  */
-
-
-
 // Determines if two dates occur on the same day
 function sameDay(d1, d2) {
   return d1.getFullYear() === d2.getFullYear() &&
