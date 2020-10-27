@@ -1040,7 +1040,7 @@ function text(input = null) {
     if(input == "aqi"){
       const textDisplay = provideText(AQI(), textStack, textFormat.aqiText)
     }else if(input == "weatherDec"){
-      textStack.setPadding(5,0,0,0)
+      textStack.setPadding(0,0,0,0)
       const textDisplay = provideText(currentDescription(), textStack, textFormat.aqiText)
 
     }else{
