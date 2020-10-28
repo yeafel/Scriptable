@@ -987,7 +987,7 @@ async function setupWeather() {
 
   // If cache exists and it's been less than 60 seconds since last request, use cached data.
   // 如果存在缓存，并且距离上次请求少于60秒，使用缓存的数据
-  if (cacheExists && (currentDate.getTime() - cacheDate.getTime()) < 600000) {
+  if (cacheExists && (currentDate.getTime() - cacheDate.getTime()) < 60000) {
     const cache = files.readString(cachePath)
     weatherDataRaw = JSON.parse(cache)
 
@@ -995,7 +995,7 @@ async function setupWeather() {
   // 否则，使用API​​获取新的天气数据
   } else {
     weatherDataRaw = await getWeatherData()
-    files.writeString(cachePath, JSON.stringify(weatherDataRaw))
+    
   }
   // 解析彩云天气数据
     let resultData = weatherDataRaw.result
@@ -1024,12 +1024,16 @@ async function setupWeather() {
 
 }
 async function getWeatherData() {
+  
+  const cachePath = files.joinPath(files.documentsDirectory(), "weather-cal-cache")
+  
   try {
   const weatherReq = "https://api.caiyunapp.com/v2.5/S45Fnpxcwyq0QT4b/"+locationData.longitude+","+locationData.latitude+"/weather.json?lang=zh_CN"
   const weatherDataRaw = await new Request(weatherReq).loadJSON()
+  files.writeString(cachePath, JSON.stringify(weatherDataRaw))
   return weatherDataRaw
   } catch (e) {
-    const cachePath = files.joinPath(files.documentsDirectory(), "weather-cal-cache")
+    
     const cacheExists = files.fileExists(cachePath)
     const cacheDate = cacheExists ? files.modificationDate(cachePath) : 0
   // 如果存在缓存，使用缓存的数据
