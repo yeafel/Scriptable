@@ -1,14 +1,58 @@
 // Variables used by Scriptable.
 // These must be at the very top of the file. Do not edit.
+// icon-color: cyan; icon-glyph: magic;
+// Variables used by Scriptable.
+// These must be at the very top of the file. Do not edit.
 // icon-color: light-brown; icon-glyph: magic;
 /*
  * SETUP/设置
  * Use this section to set up the widget.
  * 使用此部分来设置小部件
  * ======================================
- * update: 10.27-15:15
+ * update: 10.28-16:34
  */
 
+//////////////////////////////////
+// 今日诗词
+async function poetry(column) {
+  const poetry = await getPoetry()
+
+  // 添加今日诗词
+  let poetryStack = align(column)
+  // 诗词背景
+  poetryStack.backgroundColor = new Color("#F8F8FF", 0.6)
+  poetryStack.cornerRadius = 4
+  poetryStack.layoutVertically()
+  poetryStack.addSpacer(4)
+  //
+  const poetryInfoStack = poetryStack.addStack()
+  poetryInfoStack.layoutHorizontally()
+  poetryInfoStack.addSpacer(4)
+  const poetryInfo = poetry.data
+  // 添加显示诗词
+  const potryContent = `"${poetryInfo.content.substring(0, poetryInfo.content.length - 1)}"`
+  const poetryText = poetryInfoStack.addText(potryContent)
+  poetryText.font = Font.systemFont(11)
+  poetryText.lineLimit = 1
+  poetryText.minimumScaleFactor = 0.7
+  poetryText.textColor = new Color("", 0.8)
+
+  // 添加作者
+  const authStack = poetryStack.addStack()
+  authStack.layoutHorizontally()
+  authStack.addSpacer()
+  // 显示作者
+  const authorText = `⊱${poetryInfo.origin.dynasty}·${poetryInfo.origin.author}⊰`
+  const author = authStack.addText(authorText)
+  author.lineLimit = 1
+  author.font = Font.systemFont(11)
+  author.textColor = new Color("", 0.8)
+
+  authStack.addSpacer(4)
+  poetryStack.addSpacer(3)
+  poetryStack.setPadding(3, 0, 0, 0)
+  poetryStack.size = new Size(poetryInfo.content.length*12, poetryStack.size.height)
+ }
 //设置基金代码
 const expectID = "005176,161725,001556,005693"
 // Set the locale code. Leave blank "" to match the device's locale. You can change the hard-coded text strings in the TEXT section below.
@@ -39,12 +83,11 @@ const items = [
   
   row,
   
-    column(235),
+    column(200),
     left,
     date,
-    events,
-    text("-------------------------------------"),
-    text(await setupExpectString()),
+    poetry,
+    text("expect"),
     text("weatherDec"),
  
     column,
@@ -52,6 +95,7 @@ const items = [
     current,
     future,
     text("aqi"),
+    text("updateTime"),
 ]
 
 /*
@@ -181,7 +225,7 @@ const textFormat = {
   
   // Any blank values will use the default.
   // 以下的空白值都将使用上面的默认值。
-  smallDate:   { size: 18, color: "", font: "semibold" },
+  smallDate:   { size: 16, color: "", font: "semibold" },
   largeDate1:  { size: 16, color: "", font: "medium" },
   largeDate2:  { size: 16, color: "", font: "medium" },
   
@@ -195,9 +239,10 @@ const textFormat = {
   smallTemp:   { size: 10, color: "", font: "" },
   tinyTemp:    { size: 10, color: "", font: "" },
   
-  customText:  { size: 11, color: "", font: "" },
+  customText:  { size: 10, color: "", font: "" },
+  expectText:  { size: 10, color: "", font: "" },
   aqiText:     { size: 10, color: "", font: "semibold" },
-  wthDecText:  { size: 10, color: "#808080", font: "semibold" },
+  wthDecText:  { size: 10, color: "#2F4F4F", font: "semibold" },
   battery:     { size: 14, color: "", font: "medium" },
 }
 //获取今日诗词数据
@@ -205,7 +250,6 @@ async function getDataSC() {
     const url = "https://v1.jinrishici.com/all"
     const request = new Request(url)
     const data = await request.loadJSON()
-    log(data)
     return data.content
 }
 
@@ -215,21 +259,32 @@ async function setupExpectString(){
   var expectStr = ""
   for (let index in expectData) {
     // 当前基金单位净值估算日涨幅,单位为百分比
-    let expectWorth = (' 🚥 ' + expectData[index].expectGrowth+"%")
+    let expectWorth = ('🚥' + expectData[index].expectGrowth+"%")
     let name = expectData[index].name
-    name = name.replace("增强", "")
-    name = name.replace("分级", " ")
-    name = name.replace("联接C", "  ")
+    name = name.replace("混合", "混合         ")
+    name = name.replace("分级", "分级  ")
+    name = name.replace("增强A", "增强A ")
     expectStr=(expectStr+name+expectWorth+"\n")
   }
   return expectStr
 }
 // 获取基金数据
 async function dataGet() {
-  //填写你的基金代码
-  const requestUrl = "https://api.doctorxiong.club/v1/fund?code="+expectID
-  const request = new Request(requestUrl)
-  const data = await request.loadJSON()
+  const cachePath = files.joinPath(files.documentsDirectory(), "expect")
+  const cacheExists = files.fileExists(cachePath)
+  let data = undefined
+  try {
+    const requestUrl = "https://api.doctorxiong.club/v1/fund?code="+expectID
+    const request = new Request(requestUrl)
+    data = await request.loadJSON()
+    // 缓存数据
+    files.writeString(cachePath, JSON.stringify(data))
+  } catch (e) {
+    if (cacheExists) {
+      const cache = files.readString(cachePath)
+      data = JSON.parse(cache)
+    }
+  }
   return data.data
 }
 
@@ -254,8 +309,6 @@ function currentDescription(){
 }
 //AQI
 function aqiString(){
-
-  const files = FileManager.local()
   const cachePath = files.joinPath(files.documentsDirectory(), "weather-cal-cache")
   const cacheExists = files.fileExists(cachePath)
   const cacheDate = cacheExists ? files.modificationDate(cachePath) : 0
@@ -373,11 +426,15 @@ Script.complete()
  * 以下这些函数将是显示在小部件上的项目
  * ============================================
  */
+
+
+
+
 // Return a text-creation function.
 // 返回一个文本创建函数
 function text(input = null) {
 
-  function displayText(column) {
+  async function displayText(column) {
   
     // Don't do anything if the input is blank.
     // 如果输入为空，则不执行任何操作
@@ -386,14 +443,21 @@ function text(input = null) {
     // Otherwise, add the text.
     // 否则添加该文本
     const textStack = align(column)
-    textStack.setPadding(0,0,0,0)
+    textStack.setPadding(10,0,0,0)
     if(input == "aqi"){
-      textStack.setPadding(3,0,0,0)
+      textStack.setPadding(0,0,0,0)
       const textDisplay = provideText(aqiString(), textStack, textFormat.aqiText)
     }else if(input == "weatherDec"){
-      textStack.setPadding(0,0,0,0)
+      textStack.setPadding(7,0,0,0)
       const textDisplay = provideText(currentDescription(), textStack, textFormat.wthDecText)
-
+    }else if(input == "updateTime"){
+      textStack.setPadding(0,0,1,0)
+      let df =new DateFormatter()
+      df.dateFormat = "HH:mm"
+      const textDisplay = provideText(`上次更新 → ${df.string(currentDate)}`, textStack, textFormat.wthDecText)
+    }else if(input == "expect"){
+      textStack.setPadding(10,0,0,0)
+      const textDisplay = provideText(await setupExpectString(), textStack, textFormat.expectText)
     }else{
       const textDisplay = provideText(input, textStack, textFormat.customText)
     }
@@ -774,6 +838,27 @@ async function battery(column) {
  * ==============================================
  */
 
+
+ /*
+ **************************************
+ * 在线获取今日诗词
+ **************************************
+ */
+async function getPoetry() {
+  // 缓存目录
+const cachePath = files.joinPath(files.documentsDirectory(), "poetry-cache")
+  let data = undefined
+
+  try {
+    data = await new Request("https://v2.jinrishici.com/sentence").loadJSON()
+    // 缓存数据
+    files.writeString(cachePath, JSON.stringify(data))
+  } catch (e) {
+    const cache = files.readString(cachePath)
+    data = JSON.parse(cache)
+  }
+  return data
+}
 // Set up the eventData object.
 // 设定事件日期的对象
 async function setupEvents() {
@@ -909,10 +994,8 @@ async function setupWeather() {
   // Otherwise, use the API to get new weather data.
   // 否则，使用API​​获取新的天气数据
   } else {
-    const weatherReq = "https://api.caiyunapp.com/v2.5/S45Fnpxcwyq0QT4b/"+locationData.longitude+","+locationData.latitude+"/weather.json?lang=zh_CN"
-    weatherDataRaw = await new Request(weatherReq).loadJSON()
+    weatherDataRaw = await getWeatherData()
     files.writeString(cachePath, JSON.stringify(weatherDataRaw))
-
   }
   // 解析彩云天气数据
     let resultData = weatherDataRaw.result
@@ -939,6 +1022,23 @@ async function setupWeather() {
   weatherData.tomorrowLow = tomorrowLow
   weatherData.tomorrowCondition = dailyData.skycon_08h_20h[1].value
 
+}
+async function getWeatherData() {
+  try {
+  const weatherReq = "https://api.caiyunapp.com/v2.5/S45Fnpxcwyq0QT4b/"+locationData.longitude+","+locationData.latitude+"/weather.json?lang=zh_CN"
+  const weatherDataRaw = await new Request(weatherReq).loadJSON()
+  return weatherDataRaw
+  } catch (e) {
+    const cachePath = files.joinPath(files.documentsDirectory(), "weather-cal-cache")
+    const cacheExists = files.fileExists(cachePath)
+    const cacheDate = cacheExists ? files.modificationDate(cachePath) : 0
+  // 如果存在缓存，使用缓存的数据
+  if (cacheExists) {
+    const cache = files.readString(cachePath)
+    const weatherDataRaw = JSON.parse(cache)
+    return weatherDataRaw
+    }
+  }
 }
 async function getWeatherIcons(weatherName) {
   const weatherIcons = {
