@@ -9,7 +9,7 @@
  * Use this section to set up the widget.
  * 使用此部分来设置小部件
  * ======================================
- * update: 10.28-16:34
+ * update: 10.29-11:00
  */
 
 //////////////////////////////////
@@ -61,7 +61,7 @@ let locale = "zh_cn"
 
 // Set to true for fixed location, false to update location as you move around
 // 固定使用当前位置设置为true，更换了位置时设置为false以更新位置信息
-const lockLocation = false
+const lockLocation = true
 
 // The size of the widget preview in the app.
 // 小部件预览时的大小。large/medium/small
@@ -273,6 +273,15 @@ async function dataGet() {
   const cachePath = files.joinPath(files.documentsDirectory(), "expect")
   const cacheExists = files.fileExists(cachePath)
   let data = undefined
+  const hour = currentDate.getHours()
+  //超过下午3点后不再请求数据
+  if (hour > 15) {
+    if (cacheExists) {
+      const cache = files.readString(cachePath)
+      data = JSON.parse(cache)
+      return data.data
+    }
+  }
   try {
     const requestUrl = "https://api.doctorxiong.club/v1/fund?code="+expectID
     const request = new Request(requestUrl)
@@ -326,9 +335,8 @@ function aqiString(){
 }
 // Determines if the provided date is at night.
 function isNight(dateInput) {
-let date = new Date()
-const hour = date.getHours()
-return (hour < 24) || (hour > 19)
+  const hour = currentDate.getHours()
+  return (hour < 24) || (hour > 19)
 }
 
 /*
@@ -508,7 +516,6 @@ async function greeting(column) {
   // 此函数可以调整一天中不同时间段的问候语显示
   function makeGreeting() {
     const hour = currentDate.getHours()
-    log(hour)
     if (hour < 5)  { return localizedText.nightGreeting }
     if (hour < 12) { return localizedText.morningGreeting }
     if (hour < 14)  { return localizedText.noonGreeting }
@@ -986,8 +993,8 @@ async function setupWeather() {
   var weatherDataRaw
 
   // If cache exists and it's been less than 60 seconds since last request, use cached data.
-  // 如果存在缓存，并且距离上次请求少于60秒，使用缓存的数据
-  if (cacheExists && (currentDate.getTime() - cacheDate.getTime()) < 60000) {
+  // 如果存在缓存，并且距离上次请求少于5分钟，使用缓存的数据
+  if (cacheExists && (currentDate.getTime() - cacheDate.getTime()) < 5*60*1000) {
     const cache = files.readString(cachePath)
     weatherDataRaw = JSON.parse(cache)
 
