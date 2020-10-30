@@ -9,50 +9,14 @@
  * Use this section to set up the widget.
  * 使用此部分来设置小部件
  * ======================================
- * update: 10.29-11:00
+ * update: 10.30-00:26
  */
 
 //////////////////////////////////
-// 今日诗词
-async function poetry(column) {
-  const poetry = await getPoetry()
 
-  // 添加今日诗词
-  let poetryStack = align(column)
-  // 诗词背景
-  poetryStack.backgroundColor = new Color("#F8F8FF", 0.6)
-  poetryStack.cornerRadius = 4
-  poetryStack.layoutVertically()
-  poetryStack.addSpacer(4)
-  //
-  const poetryInfoStack = poetryStack.addStack()
-  poetryInfoStack.layoutHorizontally()
-  poetryInfoStack.addSpacer(4)
-  const poetryInfo = poetry.data
-  // 添加显示诗词
-  const potryContent = `"${poetryInfo.content.substring(0, poetryInfo.content.length - 1)}"`
-  const poetryText = poetryInfoStack.addText(potryContent)
-  poetryText.font = Font.systemFont(11)
-  poetryText.lineLimit = 1
-  poetryText.minimumScaleFactor = 0.7
-  poetryText.textColor = new Color("", 0.8)
 
-  // 添加作者
-  const authStack = poetryStack.addStack()
-  authStack.layoutHorizontally()
-  authStack.addSpacer()
-  // 显示作者
-  const authorText = `⊱${poetryInfo.origin.dynasty}·${poetryInfo.origin.author}⊰`
-  const author = authStack.addText(authorText)
-  author.lineLimit = 1
-  author.font = Font.systemFont(11)
-  author.textColor = new Color("", 0.8)
-
-  authStack.addSpacer(4)
-  poetryStack.addSpacer(3)
-  poetryStack.setPadding(3, 0, 0, 0)
-  poetryStack.size = new Size(poetryInfo.content.length*12, poetryStack.size.height)
- }
+// 彩云天气KEY(官方申请个人帐号)
+const caiYunKey = ""
 //设置基金代码
 const expectID = "005176,161725,001556,005693"
 // Set the locale code. Leave blank "" to match the device's locale. You can change the hard-coded text strings in the TEXT section below.
@@ -310,6 +274,7 @@ function currentDescription(){
     const cache = files.readString(cachePath)
     const weatherDataRaw = JSON.parse(cache)
     if(weatherDataRaw.cod == 401){return text}
+    if(weatherDataRaw.status == "failed"){return weatherDataRaw.error}
     const data = weatherDataRaw.result
     text = data.forecast_keypoint//未来下雨情况
     text = text.split("。")[0]
@@ -327,6 +292,7 @@ function aqiString(){
     const cache = files.readString(cachePath)
     let weatherDataRaw = JSON.parse(cache)
     if(weatherDataRaw.cod == 401){return text}
+    if(weatherDataRaw.status == "failed"){return weatherDataRaw.error}
     let realtimeData = weatherDataRaw.result.realtime
     const aqiNum = realtimeData.air_quality.aqi.usa//PM2.5
     text = String("空气指数:"+aqiNum)
@@ -436,7 +402,46 @@ Script.complete()
  */
 
 
+// 今日诗词
+async function poetry(column) {
+  const poetry = await getPoetry()
 
+  // 添加今日诗词
+  let poetryStack = align(column)
+  // 诗词背景
+  poetryStack.backgroundColor = new Color("#F8F8FF", 0.6)
+  poetryStack.cornerRadius = 4
+  poetryStack.layoutVertically()
+  poetryStack.addSpacer(4)
+  //
+  const poetryInfoStack = poetryStack.addStack()
+  poetryInfoStack.layoutHorizontally()
+  poetryInfoStack.addSpacer(4)
+  const poetryInfo = poetry.data
+  // 添加显示诗词
+  const potryContent = `"${poetryInfo.content.substring(0, poetryInfo.content.length - 1)}"`
+  const poetryText = poetryInfoStack.addText(potryContent)
+  poetryText.font = Font.systemFont(11)
+  poetryText.lineLimit = 1
+  poetryText.minimumScaleFactor = 0.7
+  poetryText.textColor = new Color("", 0.8)
+
+  // 添加作者
+  const authStack = poetryStack.addStack()
+  authStack.layoutHorizontally()
+  authStack.addSpacer()
+  // 显示作者
+  const authorText = `⊱${poetryInfo.origin.dynasty}·${poetryInfo.origin.author}⊰`
+  const author = authStack.addText(authorText)
+  author.lineLimit = 1
+  author.font = Font.systemFont(11)
+  author.textColor = new Color("", 0.8)
+
+  authStack.addSpacer(4)
+  poetryStack.addSpacer(3)
+  poetryStack.setPadding(3, 0, 0, 0)
+  poetryStack.size = new Size(poetryInfo.content.length*12, poetryStack.size.height)
+ }
 
 // Return a text-creation function.
 // 返回一个文本创建函数
@@ -997,13 +1002,12 @@ async function setupWeather() {
   if (cacheExists && (currentDate.getTime() - cacheDate.getTime()) < 5*60*1000) {
     const cache = files.readString(cachePath)
     weatherDataRaw = JSON.parse(cache)
-
   // Otherwise, use the API to get new weather data.
   // 否则，使用API​​获取新的天气数据
   } else {
     weatherDataRaw = await getWeatherData()
-    
   }
+  if(weatherDataRaw.status == "failed"){return}
   // 解析彩云天气数据
     let resultData = weatherDataRaw.result
     let realtimeData = resultData.realtime
@@ -1035,8 +1039,9 @@ async function getWeatherData() {
   const cachePath = files.joinPath(files.documentsDirectory(), "weather-cal-cache")
   
   try {
-  const weatherReq = "https://api.caiyunapp.com/v2.5/S45Fnpxcwyq0QT4b/"+locationData.longitude+","+locationData.latitude+"/weather.json?lang=zh_CN"
+  const weatherReq = "https://api.caiyunapp.com/v2.5/"+caiYunKey+"/"+locationData.longitude+","+locationData.latitude+"/weather.json?lang=zh_CN"
   const weatherDataRaw = await new Request(weatherReq).loadJSON()
+  if(weatherDataRaw.status == "failed"){return weatherDataRaw}
   files.writeString(cachePath, JSON.stringify(weatherDataRaw))
   return weatherDataRaw
   } catch (e) {
